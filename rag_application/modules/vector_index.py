@@ -401,19 +401,39 @@ class VectorIndex:
         index_ivf.train(embeddings)
 
         # Add embeddings to the index
-        # index_ivf.add(embeddings)
-
-        # Select a smaller subset of embeddings
-        subset_embeddings = embeddings[:min(500, embeddings.shape[0])]
-
-        # Create and train the index with the subset
-        index_ivf = faiss.IndexIVFFlat(quantizer, d, self.nlist)
-        index_ivf.train(subset_embeddings)
-        print(subset_embeddings.shape)
-
-        index_ivf.add(subset_embeddings)
+        index_ivf.add(embeddings)
 
         self.index = index_ivf
+
+    # def create_faiss_index(self):
+    #     """Creates an FAISS IVF-HC index for efficient vector similarity search with batch processing."""
+    #     combined_texts = self.products_df['combined_text'].tolist()
+    #     embeddings = self.encode_text_to_embedding(combined_texts)
+    #     d = embeddings.shape[1]  # Dimensionality of the embeddings
+    #
+    #     # Create the quantizer
+    #     quantizer = faiss.IndexFlatL2(d)
+    #
+    #     # Create the IVF-HC index
+    #     index_ivf = faiss.IndexIVFFlat(quantizer, d, self.nlist)
+    #
+    #     # Train the index
+    #     index_ivf.train(embeddings)
+    #
+    #     # Add embeddings to the index
+    #     # index_ivf.add(embeddings)
+    #
+    #     # Select a smaller subset of embeddings
+    #     subset_embeddings = embeddings[:min(500, embeddings.shape[0])]
+    #
+    #     # Create and train the index with the subset
+    #     index_ivf = faiss.IndexIVFFlat(quantizer, d, self.nlist)
+    #     index_ivf.train(subset_embeddings)
+    #     print(subset_embeddings.shape)
+    #
+    #     index_ivf.add(subset_embeddings)
+    #
+    #     self.index = index_ivf
 
     def search(self, query: str, k: int = 10) -> List[int]:
         query_embedding = self.encode_text_to_embedding([query])[0]

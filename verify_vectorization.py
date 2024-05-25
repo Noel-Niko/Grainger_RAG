@@ -10,7 +10,7 @@ fake = Faker()
 searchable_term = 'APPLE'
 
 
-def generate_random_product_data(num_samples=3900, searchable_keyword='PRODUCTS'):
+def generate_random_product_data(num_samples=100, searchable_keyword='PRODUCTS'):
     """Generates random product data for testing purposes, including a guaranteed searchable term."""
     product_ids = range(1, num_samples + 1)
     product_titles = [fake.catch_phrase() for _ in range(num_samples)]
@@ -43,11 +43,13 @@ class TestVectorIndex(unittest.TestCase):
     def setUp(self):
         """Set up the test environment."""
         # Generate dummy product data
-        dummy_product_data = generate_random_product_data(num_samples=100, searchable_keyword=searchable_term)
+        dummy_product_data_untrained = generate_random_product_data(num_samples=100, searchable_keyword=searchable_term)
+        dummy_product_data_trained = dummy_product_data_untrained.dropna().drop_duplicates()
+
 
         # Create a temporary file and write the dummy product data to it
         with tempfile.NamedTemporaryFile(mode='wb', delete=False, suffix='.parquet') as temp_file:
-            dummy_product_data.to_parquet(temp_file.name, engine='pyarrow')
+            dummy_product_data_trained.to_parquet(temp_file.name, engine='pyarrow')
             self.vector_index = VectorIndex(products_file=temp_file.name, nlist=100, m=16, batch_size=16)
             self.temp_file_name = temp_file.name
 

@@ -44,9 +44,7 @@ class TestDataPreprocessing(unittest.TestCase):
         self.assertTrue((df_sources_after.isnull().sum().sum() == 0))
 
     def test_feature_extraction(self):
-        df_examples_before = pd.read_parquet(self.examples_file)
         df_products_before = pd.read_parquet(self.products_file)
-        df_sources_before = pd.read_csv(self.sources_file)
         """Test feature extraction process."""
         preprocess_data()
 
@@ -56,7 +54,7 @@ class TestDataPreprocessing(unittest.TestCase):
         self.assertIn('combined_text', df_product_after.columns)
         self.assertNotEqual(len(df_products_before['product_title'].unique()),
                             len(df_product_after['combined_text'].unique()))
-
+        print(df_product_after.columns)
 
 if __name__ == "__main__":
     unittest.main()

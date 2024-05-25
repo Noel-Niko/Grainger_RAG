@@ -29,5 +29,5 @@ RUN pip install -r /app/requirements.txt
 
 # Expose port
 EXPOSE 8505
-
-CMD ["streamlit", "run", "rag_application/modules/user_interface.py", "--server.port=8505", "--server.address=0.0.0.0"]
+CMD ["./start.sh"]
+#CMD ["streamlit", "run", "rag_application/modules/user_interface.py", "--server.port=8505", "--server.address=0.0.0.0"]

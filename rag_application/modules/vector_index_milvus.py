@@ -88,7 +88,7 @@ class VectorIndex:
         """Searches the Milvus collection for the k most similar vectors to the given query vector."""
         collection = self.get_collection()
         query_entities = [[query]]
-        status, results = collection.search(query_entities, query_type=QueryType.L2, limit=k)
+        status, results = collection.searchIndex(query_entities, query_type=QueryType.L2, limit=k)
         if status!= 0:
             print(f"Search failed: {status}")
             return []
@@ -102,7 +102,7 @@ class VectorIndex:
         partition_filter = f"partition_key_field == {product_id}"  # Replace partition_key_field with your actual partition key field name
 
         # Fetch the existing vector and description for the product
-        entities = collection.search([[None]], query_type=QueryType.L2, filter_expr=partition_filter, limit=1)
+        entities = collection.searchIndex([[None]], query_type=QueryType.L2, filter_expr=partition_filter, limit=1)
         if not entities:
             print(f"No product found with ID {product_id}. Cannot update.")
             return
@@ -125,7 +125,7 @@ class VectorIndex:
         partition_filter = f"partition_key_field == {product_id}"  # Replace partition_key_field with your actual partition key field name
 
         # Check if the product exists
-        entities = collection.search([[None]], query_type=QueryType.L2, filter_expr=partition_filter, limit=1)
+        entities = collection.searchIndex([[None]], query_type=QueryType.L2, filter_expr=partition_filter, limit=1)
         if not entities:
             print(f"Product ID {product_id} not found.")
             return

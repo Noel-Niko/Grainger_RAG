@@ -8,12 +8,11 @@ from faker import Faker
 from typing import Tuple
 import string
 
-
 fake = Faker()
-searchable_term = 'APPLE'
+searchable_terms = ['APPLE', 'hammer']
 
 
-def generate_random_product_data(num_samples=10000, searchable_keyword='PRODUCTS'):
+def generate_random_product_data(num_samples=10000, searchable_keywords=['PRODUCTS', 'EXTRA']):
     """Generates random product data for testing purposes, including a guaranteed searchable term."""
     product_ids = range(1, num_samples + 1)
     product_titles = [fake.catch_phrase() for _ in range(num_samples)]
@@ -23,11 +22,11 @@ def generate_random_product_data(num_samples=10000, searchable_keyword='PRODUCTS
     product_colors = [fake.color_name() for _ in range(num_samples)]
     product_locales = [fake.city() for _ in range(num_samples)]
 
-    # Include the searchable keyword in a portion of the combined_text
     combined_text = [f"{product_titles[i]} - {product_descriptions[i]}" for i in range(num_samples)]
-    # Single entry to update with the searchable keyword
-    selected_entry_index = 0
-    combined_text[selected_entry_index] += f' {searchable_keyword}'
+
+    # Update a portion of the combined_text with varied searchable keywords
+    for i, keyword in enumerate(searchable_keywords):
+        combined_text[i] += f' {keyword}'
 
     product_data = pd.DataFrame({
         'product_id': product_ids,
@@ -40,17 +39,27 @@ def generate_random_product_data(num_samples=10000, searchable_keyword='PRODUCTS
         'combined_text': combined_text
     })
 
-    # Generate additional entries similar to those with the searchable keyword
+    # Generate additional entries with varied combinations
     additional_entries = []
-    total_length = len(product_data)
     for i in range(20):
-        base_entry = product_data.iloc[i % (num_samples // 2)].copy()
+        # Select a random sample
+        base_entry = product_data.sample(n=1).iloc[0].copy()
         entry_with_keyword = base_entry.copy()
-        # Get the letter corresponding to the index
-        letter = string.ascii_uppercase[i % len(string.ascii_uppercase)]
+
+        # Choose a random keyword from the list
+        keyword = searchable_keywords[i % len(searchable_keywords)]
         entry_with_keyword[
-            'combined_text'] = f"{searchable_keyword}{letter} - {base_entry['product_title']} - {base_entry['product_description']}"
-        entry_with_keyword['product_id'] = total_length + i + 1
+            'combined_text'] = f"{keyword} - {entry_with_keyword['product_title']} - {entry_with_keyword['product_description']}"
+
+        # Introduce additional random variations
+        entry_with_keyword['product_title'] = fake.catch_phrase()
+        entry_with_keyword['product_description'] = fake.text(max_nb_chars=200)
+        entry_with_keyword['product_bullet_point'] = f"New key feature {i + 1}: {fake.word()}."
+        entry_with_keyword['product_brand'] = fake.company()
+        entry_with_keyword['product_color'] = fake.color_name()
+        entry_with_keyword['product_locale'] = fake.city()
+
+        entry_with_keyword['product_id'] = len(product_data) + i + 1
         additional_entries.append(entry_with_keyword)
 
     additional_df = pd.DataFrame(additional_entries)
@@ -64,7 +73,8 @@ class TestVectorIndex(unittest.TestCase):
     def setUp(self):
         """Set up the test environment."""
         # Generate dummy product data
-        dummy_product_data_untrained = generate_random_product_data(num_samples=1000, searchable_keyword=searchable_term)
+        dummy_product_data_untrained = generate_random_product_data(num_samples=1000,
+                                                                    searchable_keywords=searchable_terms)
         dummy_product_data_trained = dummy_product_data_untrained.dropna().drop_duplicates()
 
         # Create a temporary file and write the dummy product data to it
@@ -98,7 +108,7 @@ class TestVectorIndex(unittest.TestCase):
         self.assertIsNotNone(self.vector_index.index, "FAISS index is not created.")
 
         # Perform a simple search to verify the functionality of the index
-        query_result = self.vector_index.search("sample query", k=3)
+        query_result = self.vector_index.searchIndex("sample query", k=3)
         self.assertIsInstance(query_result, tuple, "Search returned unexpected result type.")
         self.assertGreater(len(query_result[1]), 0, "No results found for the sample query.")
 
@@ -110,12 +120,12 @@ class TestVectorIndex(unittest.TestCase):
         self.vector_index.create_faiss_index()
         self.assertIsNotNone(self.vector_index.index, "FAISS index is not created.")
 
-        query_string = searchable_term
-        distances, product_ids = self.vector_index.search(query_string, k=5)
+        query_string = searchable_terms[0]
+        distances, product_ids = self.vector_index.searchIndex(query_string, k=5)
 
         # Ensure distances is a numpy array
         self.assertIsInstance(distances, np.ndarray, "Distances are not a numpy array.")
-        # self.assertEqual(5, len(distances), "Number of distances does not match k.")
+        self.assertEqual(5, distances.data.itemsize, "Number of distances does not match k.")
 
         # Ensure product_ids is a list
         self.assertIsInstance(product_ids, list, "Product IDs are not a list.")
@@ -127,19 +137,19 @@ class TestVectorIndex(unittest.TestCase):
     def test_empty_query_vector(self):
         """Test searching with an empty query vector."""
         with self.assertRaises(ValueError) as context:
-            self.vector_index.search(searchable_term, k=5)
+            self.vector_index.searchIndex(searchable_terms[0], k=5)
         self.assertEqual(str(context.exception), "Query vector cannot be empty.")
 
     def test_small_search_radius(self):
         """Test searching with a very small radius."""
         with self.assertRaises(ValueError) as context:
-            self.vector_index.search(searchable_term, k=0.001)  # k is expected to be an integer
+            self.vector_index.searchIndex(searchable_terms[0], k=0.001)  # k is expected to be an integer
         self.assertEqual(str(context.exception), "Search radius must be an integer greater than 0.")
 
     def test_uninitialized_index_search(self):
         """Test searching with an uninitialized index."""
         with self.assertRaises(RuntimeError) as context:
-            self.vector_index.search(searchable_term, k=5)
+            self.vector_index.searchIndex(searchable_terms[0], k=5)
         self.assertIn("Index is not initialized.", str(context.exception))
 
 

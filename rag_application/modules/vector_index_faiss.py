@@ -178,6 +178,12 @@ class VectorIndex:
         """Creates an FAISS IVF-HC index for efficient vector similarity search with batch processing."""
         combined_texts = self.products_df['combined_text'].tolist()
         embeddings = self.encode_text_to_embedding(combined_texts)
+        expected_dim = 768  # Example: BERT base model has 768 dimensions
+        if embeddings.ndim != 2 or embeddings.shape[1] != expected_dim:
+            raise ValueError(
+                f"Inconsistent embedding dimensions. Expected {expected_dim}, got {embeddings.shape[1]}")
+
+
         d = embeddings.shape[1]  # Dimensionality of the embeddings
 
         # Create the quantizer and index

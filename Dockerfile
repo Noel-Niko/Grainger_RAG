@@ -1,5 +1,11 @@
 # base image
-FROM python:3.9.7-slim
+FROM python:3.10
+
+
+## Set environment variables
+#ENV PYTHONDONTWRITEBYTECODE=1
+#ENV PYTHONUNBUFFERED=1
+#ENV PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
 
 WORKDIR /app
 
@@ -19,7 +25,6 @@ RUN mkdir -p /rag_application/model/huggingface/hub
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 
-ENV PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
 
 # Install pip dependencies
 COPY requirements.txt /app/requirements.txt
@@ -30,4 +35,3 @@ RUN pip install -r /app/requirements.txt
 # Expose port
 EXPOSE 8505
 CMD ["./start.sh"]
-#CMD ["streamlit", "run", "rag_application/modules/user_interface.py", "--server.port=8505", "--server.address=0.0.0.0"]

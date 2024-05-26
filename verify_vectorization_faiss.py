@@ -108,7 +108,7 @@ class TestVectorIndex(unittest.TestCase):
         self.assertIsNotNone(self.vector_index.index, "FAISS index is not created.")
 
         # Perform a simple search to verify the functionality of the index
-        query_result = self.vector_index.searchIndex("sample query", k=3)
+        query_result = self.vector_index.search_index("sample query", k=3)
         self.assertIsInstance(query_result, tuple, "Search returned unexpected result type.")
         self.assertGreater(len(query_result[1]), 0, "No results found for the sample query.")
 
@@ -121,35 +121,39 @@ class TestVectorIndex(unittest.TestCase):
         self.assertIsNotNone(self.vector_index.index, "FAISS index is not created.")
 
         query_string = searchable_terms[0]
-        distances, product_ids = self.vector_index.searchIndex(query_string, k=5)
+        distances, product_ids = self.vector_index.search_index(query_string, k=5)
 
         # Ensure distances is a numpy array
         self.assertIsInstance(distances, np.ndarray, "Distances are not a numpy array.")
-        self.assertEqual(5, distances.data.itemsize, "Number of distances does not match k.")
+        distances_list = distances.tolist()
+        distance_list = len(distances_list)
+        self.assertEqual(5, len(distances.tolist()[0]), "Number of distances does not match k.")
 
         # Ensure product_ids is a list
-        self.assertIsInstance(product_ids, list, "Product IDs are not a list.")
-        self.assertGreaterEqual(len(product_ids), 1, "No product IDs returned.")
+        self.assertIsInstance(product_ids, np.ndarray, "Product IDs are not a list.")
+        self.assertGreaterEqual(len(product_ids.tolist()[0]), 1, "No product IDs returned.")
+        self.assertLessEqual(len(product_ids.tolist()[0]), 6, "More than 5 product IDs returned.")
+
         # Ensure each product_id is an integer or string
-        for pid in product_ids:
+        for pid in product_ids.tolist()[0]:
             self.assertIsInstance(pid, (int, str), "Product ID is not an integer or string.")
 
     def test_empty_query_vector(self):
         """Test searching with an empty query vector."""
         with self.assertRaises(ValueError) as context:
-            self.vector_index.searchIndex(searchable_terms[0], k=5)
+            self.vector_index.search_index(searchable_terms[0], k=5)
         self.assertEqual(str(context.exception), "Query vector cannot be empty.")
 
     def test_small_search_radius(self):
         """Test searching with a very small radius."""
         with self.assertRaises(ValueError) as context:
-            self.vector_index.searchIndex(searchable_terms[0], k=0.001)  # k is expected to be an integer
+            self.vector_index.search_index(searchable_terms[0], k=0.001)  # k is expected to be an integer
         self.assertEqual(str(context.exception), "Search radius must be an integer greater than 0.")
 
     def test_uninitialized_index_search(self):
         """Test searching with an uninitialized index."""
         with self.assertRaises(RuntimeError) as context:
-            self.vector_index.searchIndex(searchable_terms[0], k=5)
+            self.vector_index.search_index(searchable_terms[0], k=5)
         self.assertIn("Index is not initialized.", str(context.exception))
 
 

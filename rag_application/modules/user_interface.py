@@ -71,7 +71,7 @@ class RAGApplication:
             st.write("Response:", response)
 
     def process_query(self, query):
-        relevant_product_ids = self.vector_index.searchIndex(query, k=5)  # Adjust k as needed
+        relevant_product_ids = self.vector_index.search_index(query, k=5)  # Adjust k as needed
         product_info = ", ".join(
             [f"ID: {pid}, Name: {self.vector_index.products_df.loc[pid, 'product_name']}" for pid in
              relevant_product_ids]

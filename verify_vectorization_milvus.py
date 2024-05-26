@@ -32,7 +32,7 @@ def test_search(vector_index):
     ids = list(range(5))  # Example IDs
     vector_index.insert_vectors(vectors, ids)
     query_vector = vectors[0]  # Search for the first inserted vector
-    results = vector_index.searchIndex(query_vector, k=2)
+    results = vector_index.search_index(query_vector, k=2)
     assert len(results) == 2
     assert results[0] == ids[0]
     assert results[1] == ids[1]

@@ -9,15 +9,24 @@ class VectorIndex:
     """
     VectorIndex for creating and querying a FAISS index using BERT embeddings.
     Uses batch processing to avoid loading the entire dataset into memory at once.
+    Ensures that the FAISS index is created once and reused throughout the application life of the container.
     """
+    _instance = None
+    _index = None
+    _products_df = None
+
+    @classmethod
+    def getInstance(cls):
+        """Static access method to get the singleton instance."""
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
 
     def __init__(self, products_file: str, nlist: int = 100, m: int = 16, batch_size: int = 32):
         self.products_file = products_file
         self.nlist = nlist
         self.m = m
         self.batch_size = batch_size
-        self.index = None
-        self.products_df = None  # indicates not yet loaded as this will be done in load_processed_products
 
     def load_processed_products(self):
         """Loads the processed products data with error handling."""
@@ -61,19 +70,17 @@ class VectorIndex:
 
         # Create the quantizer and index
         quantizer = faiss.IndexFlatL2(d)
-        m = 8  # Number of sub-quantizers
-        nbits = 8  # Number of bits per sub-quantizer
-        index = faiss.IndexIVFPQ(quantizer, d, self.nlist, m, nbits)
+        self.index = faiss.IndexIVFFlat(quantizer, d, self.nlist)
 
         # Ensure embeddings is a numpy array
         embeddings_np = np.array(embeddings)
 
         # Train the index and add embeddings
-        index.train(embeddings_np)
+        self.index.train(embeddings_np)
+        self.index.add(embeddings_np)
 
-        self.index = index
 
-    def searchIndex(self, query: str, k: int = 10) -> Tuple[np.ndarray, np.ndarray]:
+    def search_index(self, query: str, k: int = 10) -> Tuple[np.ndarray, np.ndarray]:
         """
         Searches for the k nearest neighbors of the query.
 
@@ -89,8 +96,6 @@ class VectorIndex:
 
         # Search the FAISS index
         distance, index = self.index.search(query_vector[0], k)
-
-        # distance, index = self.index.search(query_vector.astype('float32'), k)
 
         return distance, index
 

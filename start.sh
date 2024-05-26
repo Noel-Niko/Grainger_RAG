@@ -1,14 +1,13 @@
 #!/bin/bash
 
 # Navigate to the directory containing your scripts and data
-cd /app
+cd /app || { echo "Failed to change directory to /app"; exit 1; }
 
 # Run the preprocessing script
-python preprocess_data.py || { echo "Preprocessing failed"; exit 1; }
-
+python -m rag_application.modules.preprocess_data || { echo "Preprocessing failed"; exit 1; }
 
 # Run the FAISS vector index script
-python vector_index_faiss.py || { echo "FAISS vector index build failed"; exit 1; }
+python -m rag_application.modules.vector_index_faiss || { echo "FAISS vector index build failed"; exit 1; }
 
 # Start Streamlit
 exec streamlit run rag_application/modules/user_interface.py --server.port=8505 --server.address=0.0.0.0 || { echo "Streamlit failed to start"; exit 1; }

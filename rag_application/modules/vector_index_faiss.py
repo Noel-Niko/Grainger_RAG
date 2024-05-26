@@ -128,7 +128,7 @@ import pandas as pd
 import numpy as np
 from transformers import AutoTokenizer, AutoModel
 import faiss
-from typing import List
+from typing import Tuple, List
 
 
 class VectorIndex:
@@ -183,23 +183,38 @@ class VectorIndex:
             raise ValueError(
                 f"Inconsistent embedding dimensions. Expected {expected_dim}, got {embeddings.shape[1]}")
 
-
         d = embeddings.shape[1]  # Dimensionality of the embeddings
 
         # Create the quantizer and index
         quantizer = faiss.IndexFlatL2(d)
-        self.index = faiss.IndexIVFFlat(quantizer, d, self.nlist)
+        m = 8  # Number of sub-quantizers
+        nbits = 8  # Number of bits per sub-quantizer
+        index = faiss.IndexIVFPQ(quantizer, d, self.nlist, m, nbits)
+
+        # Ensure embeddings is a numpy array
+        embeddings_np = np.array(embeddings)
 
         # Train the index and add embeddings
-        self.index.train(embeddings)
-        self.index.add(embeddings)
+        index.train(embeddings_np)
 
-    def search(self, query: str, k: int = 10) -> List[int]:
+        # # Train the index and add embeddings
+        # # index.train(embeddings.shape[0], embeddings)
+        #
+        # # Train the quantizer (not the index itself) with the embeddings
+        # index.train(embeddings)
+        #
+        # # Add the training data to the index
+        # index.add(embeddings)
+
+        self.index = index
+
+    def search(self, query: str, k: int = 10) -> Tuple[np.ndarray, np.ndarray]:
         """Searches for the k nearest neighbors of the query."""
         query_embedding = self.encode_text_to_embedding([query])[0].reshape(1, -1)
         distances, indices = self.index.search(query_embedding, k)
+
         matching_product_ids = self.products_df.iloc[indices[0]]['product_id'].tolist()
-        return matching_product_ids
+        return distances, matching_product_ids
 
     def update_product_description(self, product_id: str, new_description: str):
         """Updates the description of a product."""

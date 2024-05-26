@@ -19,6 +19,11 @@ faiss_cpu==1.7.3
 aicrowd-cli
 pyarrow
 
+langchain
+langchain_openai
+langchain-community
+langchain-core
+langsmith
 
 
 

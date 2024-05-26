@@ -2,16 +2,19 @@ import numpy as np
 import pandas as pd
 import torch
 from transformers import AutoTokenizer, AutoModel
-from pymilvus import connections, Collection, FieldSchema, CollectionSchema, DataType, Type, CollectionStatus, InsertParam, QueryType, MetricType
+from pymilvus import connections, Collection, FieldSchema, CollectionSchema, DataType
 from typing import List
 
 class VectorIndex:
-    def __init__(self, collection_name: str, dimension: int, nlist: int = 100, m: int = 16, batch_size: int = 32):
+    def __init__(self, collection_name: str, dimension: int, partition_key_field=None, nlist: int = 100, m: int = 16, batch_size: int = 32):
         self.collection_name = collection_name
         self.dimension = dimension
+        self.partition_key_field = partition_key_field  # Added partition_key_field as an attribute
         self.nlist = nlist
         self.m = m
         self.batch_size = batch_size
+        self.tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')  # Adjust the model/tokenizer as needed
+        self.model = AutoModel.from_pretrained('bert-base-uncased').eval()  # Adjust the model/tokenizer as needed
         self.connect_milvus()
 
     def connect_milvus(self):
@@ -20,6 +23,22 @@ class VectorIndex:
             connections.connect()
         except Exception as e:
             print(f"Failed to connect to Milvus: {e}")
+
+    def encode_text_to_embedding(self, text: str) -> np.ndarray:
+        """
+        Encodes the given text into an embedding using a pre-trained model.
+
+        :param text: The text to encode.
+        :return: A NumPy array representing the embedding of the text.
+        """
+        inputs = self.tokenizer(text, return_tensors="pt", padding=True, truncation=True, max_length=512)
+        with torch.no_grad():
+            outputs = self.model(**inputs)
+        last_hidden_state = outputs.last_hidden_state
+        # Assuming we want the mean pooling of the token embeddings
+        pooled_output = torch.mean(last_hidden_state, dim=1)
+        embedding = pooled_output.cpu().numpy()
+        return embedding.flatten()
 
     def create_partitioned_collection(self):
         """Creates a new partitioned collection in Milvus."""
@@ -30,10 +49,11 @@ class VectorIndex:
         ]
         schema = CollectionSchema(fields, primary_field="id")
         collection = Collection(name=self.collection_name, schema=schema, partition_key=self.partition_key_field)
-        if collection.status != CollectionStatus.OK:
-            print(f"Collection creation failed: {collection.status}")
-        else:
+        try:
+            collection.load()  # Attempt to load the collection to ensure it exists
             print("Collection created successfully.")
+        except Exception as e:
+            print(f"Collection creation failed: {e}")
         return collection
 
     def create_collection(self):

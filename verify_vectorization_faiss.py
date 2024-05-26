@@ -86,9 +86,20 @@ class TestVectorIndex(unittest.TestCase):
 
     def test_single_word_search(self):
         """Test searching for nearest neighbors."""
-        # Ensure VectorIndex is properly initialized and the index is created
-        if not hasattr(self.vector_index, 'index'):
-            raise AssertionError("VectorIndex is not properly initialized or the FAISS index was not created.")
+        # Verify that the VectorIndex instance has been properly initialized
+        self.assertIsNotNone(self.vector_index, "VectorIndex instance is not properly initialized.")
+
+        # Load the processed products data
+        self.vector_index.load_processed_products()
+
+        # Check if the products file exists before attempting to create the FAISS index
+        self.assertTrue(os.path.exists(self.vector_index.products_file), "Products file does not exist.")
+
+        # Create the FAISS index
+        self.vector_index.create_faiss_index()
+
+        # Verify that the FAISS index is now populated
+        self.assertIsNotNone(self.vector_index.index, "FAISS index is not created.")
 
         query_string = searchable_term
 

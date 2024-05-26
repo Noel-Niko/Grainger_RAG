@@ -1,26 +1,17 @@
-##!/bin/bash
-#
-#python preprocess_data.py
-#
-#python vector_index.py
-#
-## Start Streamlit
-#exec streamlit run rag_application/modules/user_interface.py --server.port=8505 --server.address=0.0.0.0
-
 #!/bin/bash
 
 # Navigate to the directory containing your scripts and data
-cd /path/to/your/project
+cd /app
 
 # Run the preprocessing script
-python preprocess_data.py
+python preprocess_data.py || { echo "Preprocessing failed"; exit 1; }
 
-# Assuming vector_index.py builds the vector index and saves it to a file
-# Ensure this script is correctly placed and executable
-python vector_index.py
+
+# Run the FAISS vector index script
+python vector_index_faiss.py || { echo "FAISS vector index build failed"; exit 1; }
 
 # Start Streamlit
-exec streamlit run rag_application/modules/user_interface.py --server.port=8505 --server.address=0.0.0.0
+exec streamlit run rag_application/modules/user_interface.py --server.port=8505 --server.address=0.0.0.0 || { echo "Streamlit failed to start"; exit 1; }
 
 ##!/bin/bash
 #

@@ -19,6 +19,14 @@ which python
 source ~/.bashrc
 source ~/.zshrc
 
+## Install Rust dependencies if needed
+#rustup update
+#cargo install $(cargo install --list | egrep '^[a-z0-9_-]+ v[0-9.]+:$' | cut -f1 -d' ')
+
+## Sourcing the shell profile again to ensure availability
+#source ~/.bashrc
+#source ~/.zshrc
+
 # Install required packages
 conda install -y -c conda-forge transformers
 conda install -y -c pytorch pytorch torchvision torchaudio cpuonly
@@ -26,7 +34,7 @@ conda install -y streamlit
 conda install -y -c conda-forge faiss-cpu
 
 
-# Navigate to the directory containing your scripts and data
+# Navigate to the directory containing scripts and data
 cd /app || { echo "Failed to change directory to /app"; exit 1; }
 
 # Run the preprocessing script

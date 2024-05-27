@@ -1,12 +1,9 @@
 #!/bin/bash
 
-# Initialize Conda for bash and zsh shells
-echo "source /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc
-echo "conda init bash" >> ~/.bashrc
-echo "conda init zsh" >> ~/.zshrc
+# Source the shell profile to apply Conda environment
+source ~/.bashrc
+source ~/.zshrc
 
-# Activate the Conda environment
-conda activate myenv
 
 # After activating the Conda environment
 echo "Active Conda environment:"
@@ -14,9 +11,9 @@ conda env list
 echo "Python path:"
 which python
 
-# Source the shell profile to apply Conda environment
-source ~/.bashrc
-source ~/.zshrc
+# Activate the Conda environment
+conda activate myenv
+
 
 # Install required packages
 echo "Install conda packages"

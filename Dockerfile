@@ -19,11 +19,6 @@ RUN bash Anaconda3-2024.02-1-Linux-x86_64.sh -b -u -p /opt/conda
 # Cleanup: remove the installer script
 RUN rm Anaconda3-2024.02-1-Linux-x86_64.sh
 
-# Install Rust compiler
-#RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain=stable
-#ENV PATH="/root/.cargo/bin:${PATH}"
-
-
 # Install Rust compiler and Cargo and export the PATH variable
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile default && \
     echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> $HOME/.bashrc && \
@@ -32,33 +27,13 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --pr
     rustc --version && \
     cargo --version
 
-
-
-
 # Update package lists and install protobuf development files and compiler
 RUN apt-get update && \
     apt-get install -y libprotobuf-dev protobuf-compiler && \
     apt-get -y install vim
 
-
-# Copy the initialization script into the container
-#COPY init_conda.sh /app/init_conda.sh
-
 # Make the script executable
 RUN #chmod +x /app/init_conda.sh
-
-# Execute the script
-#CMD ["/app/init_conda.sh"]
-
-## Initialize Miniconda for bash and zsh shells
-#RUN echo "source /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc
-#RUN echo "conda init bash" >> ~/.bashrc
-#RUN echo "conda init zsh" >> ~/.zshrc
-#
-## Update package lists and install protobuf development files and compiler
-#RUN apt-get update && \
-#    apt-get install -y libprotobuf-dev protobuf-compiler && \
-#    apt-get -y install vim
 
 # Copy over source code
 COPY . /app

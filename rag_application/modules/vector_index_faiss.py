@@ -28,11 +28,14 @@ class VectorIndex:
         self.m = m
         self.batch_size = batch_size
         self.embeddings_dict = {}
+        print("VectorIndex instance created.")
 
     def load_processed_products(self):
         """Loads the processed products data with error handling."""
+        print("Loading preprocessed products.")
         try:
             self.products_df = pd.read_parquet(self.products_file)
+            print("Completed loading preprocessed porducts.")
         except FileNotFoundError:
             print(f"File {self.products_file} not found.")
         except Exception as e:
@@ -40,11 +43,14 @@ class VectorIndex:
 
     def encode_text_to_embedding(self, texts: List[str]):
         """Encodes a list of texts to BERT embeddings with error handling."""
+        print("Encoding text to embedding.")
         embeddings = []
         tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
         model = AutoModel.from_pretrained('bert-base-uncased')
 
+        total_batches = (len(texts) + self.batch_size - 1)
         for batch in range(0, len(texts), self.batch_size):
+            print(f"Encoding text batch {batch} of {total_batches}.")
             batch_texts = texts[batch:batch + self.batch_size]
             if not batch_texts:
                 continue
@@ -53,6 +59,7 @@ class VectorIndex:
                 outputs = model(**inputs)
                 batch_embeddings = outputs.last_hidden_state[:, 0, :].detach().numpy()
                 embeddings.extend(batch_embeddings)
+                print(f"Finished encoding text batch {batch} of {total_batches}.")
             except Exception as e:
                 print(f"An error occurred during embedding extraction: {e}")
 
@@ -60,6 +67,7 @@ class VectorIndex:
 
     def create_faiss_index(self):
         """Creates an FAISS IVF-HC index for efficient vector similarity search with batch processing."""
+        print(f"Creating an FAISS IVF-HC index for efficient vector similarity search with batch processing.")
         combined_texts = self.products_df['combined_text'].tolist()
         embeddings = self.encode_text_to_embedding(combined_texts)
         expected_dim = 768  # Example: BERT base model has 768 dimensions
@@ -70,6 +78,7 @@ class VectorIndex:
         d = embeddings.shape[1]  # Dimensionality of the embeddings
 
         # Create the quantizer and index
+        print("Creating quantizer")
         quantizer = faiss.IndexFlatL2(d)
         self._index = faiss.IndexIVFFlat(quantizer, d, self.nlist)
 
@@ -77,7 +86,9 @@ class VectorIndex:
         embeddings_np = np.array(embeddings)
 
         # Train the index and add embeddings
+        print("Training...")
         self._index.train(embeddings_np)
+        print("Embedding...")
         self._index.add(embeddings_np)
 
     def search_index(self, query: str, k: int = 10) -> Tuple[np.ndarray, np.ndarray]:
@@ -88,6 +99,7 @@ class VectorIndex:
         :param k: Number of nearest neighbors to return.
         :return: A tuple containing distances and indices of the nearest neighbors.
         """
+        print("Searching for the k nearest neighbors of the query.")
         # Check if the index is initialized
         if self._index is None:
             raise RuntimeError("Index is not initialized.")
@@ -105,8 +117,10 @@ class VectorIndex:
         query_vector = np.expand_dims(query_vector, axis=0)
 
         # Search the FAISS index
+        print("Searching the FAISS index.")
         distance, result_index = self._index.search(query_vector[0], k)
-
+        print(f"Returning distance: {distance.tolist()[0]}")
+        print(f"Returning distance: {result_index.tolist()[0]}")
         return distance, result_index
 
     def find_changed_products(self, old_descriptions, new_descriptions):

@@ -237,7 +237,7 @@ class VectorIndex:
 
 
 if __name__ == "__main__":
-    products_file = 'rag_application/shopping_queries_dataset/processed_products.parquet'
+    products_file = 'shopping_queries_dataset/processed_products.parquet'
     vector_index = VectorIndex(products_file, batch_size=32)
     vector_index.load_processed_products()
     vector_index.create_faiss_index()

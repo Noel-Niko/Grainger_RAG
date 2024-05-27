@@ -42,7 +42,7 @@
 import streamlit as st
 from rag_application.modules.vector_index_faiss import VectorIndex  # Adjusted import statement
 from rag_application.modules.llm_interface import LLMInteraction
-from rag_application.utils.constants import langchainApiKey
+from rag_application.constants import langchainApiKey
 
 llm_interaction = LLMInteraction(model_name='gpt-chat', api_token=langchainApiKey)
 llm_interaction = wrap_openai(llm_interaction)

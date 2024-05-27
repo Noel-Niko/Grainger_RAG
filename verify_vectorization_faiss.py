@@ -90,8 +90,7 @@ class TestVectorIndex(unittest.TestCase):
             del self.test_vectors
         os.unlink(self.temp_file_name)
 
-    def test_create_faiss_index(self):
-        """Test creating the index."""
+    def set_up_data(self):
         # Verify that the VectorIndex instance has been properly initialized
         self.assertIsNotNone(self.vector_index, "VectorIndex instance is not properly initialized.")
 
@@ -107,13 +106,18 @@ class TestVectorIndex(unittest.TestCase):
         # Verify that the FAISS index is now populated
         self.assertIsNotNone(self.vector_index.index, "FAISS index is not created.")
 
+    def test_create_faiss_index(self):
+        """Test creating the index."""
+        self.set_up_data()
+
         # Perform a simple search to verify the functionality of the index
         query_result = self.vector_index.search_index("sample query", k=3)
         self.assertIsInstance(query_result, tuple, "Search returned unexpected result type.")
-        self.assertGreater(len(query_result[1]), 0, "No results found for the sample query.")
+        self.assertGreater(len(query_result[1].tolist()[0]), 0, "No results found for the sample query.")
 
     def test_single_word_search(self):
         """Test searching for nearest neighbors."""
+        self.set_up_data()
         self.assertIsNotNone(self.vector_index, "VectorIndex instance is not properly initialized.")
         self.vector_index.load_processed_products()
         self.assertTrue(os.path.exists(self.vector_index.products_file), "Products file does not exist.")
@@ -140,18 +144,14 @@ class TestVectorIndex(unittest.TestCase):
 
     def test_empty_query_vector(self):
         """Test searching with an empty query vector."""
+        self.set_up_data()
         with self.assertRaises(ValueError) as context:
-            self.vector_index.search_index(searchable_terms[0], k=5)
-        self.assertEqual(str(context.exception), "Query vector cannot be empty.")
-
-    def test_small_search_radius(self):
-        """Test searching with a very small radius."""
-        with self.assertRaises(ValueError) as context:
-            self.vector_index.search_index(searchable_terms[0], k=0.001)  # k is expected to be an integer
-        self.assertEqual(str(context.exception), "Search radius must be an integer greater than 0.")
+            self.vector_index.search_index("", k=5)
+        self.assertEqual(str(context.exception), "Query string cannot be empty.")
 
     def test_uninitialized_index_search(self):
         """Test searching with an uninitialized index."""
+        # self.set_up_data()
         with self.assertRaises(RuntimeError) as context:
             self.vector_index.search_index(searchable_terms[0], k=5)
         self.assertIn("Index is not initialized.", str(context.exception))

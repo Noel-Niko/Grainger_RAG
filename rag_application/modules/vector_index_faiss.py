@@ -79,7 +79,6 @@ class VectorIndex:
         self.index.train(embeddings_np)
         self.index.add(embeddings_np)
 
-
     def search_index(self, query: str, k: int = 10) -> Tuple[np.ndarray, np.ndarray]:
         """
         Searches for the k nearest neighbors of the query.
@@ -88,6 +87,16 @@ class VectorIndex:
         :param k: Number of nearest neighbors to return.
         :return: A tuple containing distances and indices of the nearest neighbors.
         """
+        # Check if the index is initialized
+        if self._index is None:
+            raise RuntimeError("Index is not initialized.")
+        # Check if the query is empty and raise a ValueError if it is
+        if not query.strip():
+            raise ValueError("Query string cannot be empty.")
+        # Check if k is an integer > 0
+        if not isinstance(k, int) or k <= 0:
+            raise TypeError("Search radius must be an integer greater than 0.")
+
         # Convert the query string into a numerical vector
         query_vector = self.encode_text_to_embedding([query])
 
@@ -95,9 +104,9 @@ class VectorIndex:
         query_vector = np.expand_dims(query_vector, axis=0)
 
         # Search the FAISS index
-        distance, index = self.index.search(query_vector[0], k)
+        distance, result_index = self.index.search(query_vector[0], k)
 
-        return distance, index
+        return distance, result_index
 
     def update_product_description(self, product_id: str, new_description: str):
         """Updates the description of a product."""

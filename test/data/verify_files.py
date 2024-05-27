@@ -1,8 +1,8 @@
 import pandas as pd
 
-examples_file = 'rag_application/shopping_queries_dataset/shopping_queries_dataset_examples.parquet'
+examples_file = '../../rag_application/shopping_queries_dataset/shopping_queries_dataset_examples.parquet'
 products_file = 'rag_application/shopping_queries_dataset/shopping_queries_dataset_products.parquet'
-sources_file = 'rag_application/shopping_queries_dataset/shopping_queries_dataset_sources.csv'
+sources_file = '../../rag_application/shopping_queries_dataset/shopping_queries_dataset_sources.csv'
 
 try:
     df_examples = pd.read_parquet(examples_file)

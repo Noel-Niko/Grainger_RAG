@@ -6,9 +6,9 @@ from rag_application.modules.preprocess_data import preprocess_data
 class TestDataPreprocessing(unittest.TestCase):
 
     def setUp(self):
-        self.examples_file = 'rag_application/shopping_queries_dataset/shopping_queries_dataset_examples.parquet'
+        self.examples_file = '../../rag_application/shopping_queries_dataset/shopping_queries_dataset_examples.parquet'
         self.products_file = 'rag_application/shopping_queries_dataset/shopping_queries_dataset_products.parquet'
-        self.sources_file = 'rag_application/shopping_queries_dataset/shopping_queries_dataset_sources.csv'
+        self.sources_file = '../../rag_application/shopping_queries_dataset/shopping_queries_dataset_sources.csv'
 
     def test_data_loading(self):
         """Test loading of data before preprocessing."""
@@ -29,7 +29,7 @@ class TestDataPreprocessing(unittest.TestCase):
         """Test data cleaning process."""
         preprocess_data()
 
-        df_examples_after = pd.read_parquet('rag_application/shopping_queries_dataset/processed_examples.parquet')
+        df_examples_after = pd.read_parquet('../../rag_application/shopping_queries_dataset/processed_examples.parquet')
         df_products_after = pd.read_parquet('rag_application/shopping_queries_dataset/processed_products.parquet')
         df_sources_after = pd.read_csv('rag_application/shopping_queries_dataset/processed_sources.csv')
 

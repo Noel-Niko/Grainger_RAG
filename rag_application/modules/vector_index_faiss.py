@@ -71,14 +71,14 @@ class VectorIndex:
 
         # Create the quantizer and index
         quantizer = faiss.IndexFlatL2(d)
-        self.index = faiss.IndexIVFFlat(quantizer, d, self.nlist)
+        self._index = faiss.IndexIVFFlat(quantizer, d, self.nlist)
 
         # Ensure embeddings is a numpy array
         embeddings_np = np.array(embeddings)
 
         # Train the index and add embeddings
-        self.index.train(embeddings_np)
-        self.index.add(embeddings_np)
+        self._index.train(embeddings_np)
+        self._index.add(embeddings_np)
 
     def search_index(self, query: str, k: int = 10) -> Tuple[np.ndarray, np.ndarray]:
         """
@@ -105,7 +105,7 @@ class VectorIndex:
         query_vector = np.expand_dims(query_vector, axis=0)
 
         # Search the FAISS index
-        distance, result_index = self.index.search(query_vector[0], k)
+        distance, result_index = self._index.search(query_vector[0], k)
 
         return distance, result_index
 
@@ -161,10 +161,10 @@ class VectorIndex:
                 product_index = self.products_df[self.products_df['product_id'] == product_id].index[0]
                 combined_text = f"{self.products_df.at[product_index, 'product_title']} {self.products_df.at[product_index, 'product_description']}"
                 new_embedding = self.encode_text_to_embedding([combined_text])[0]
-                self.index.add_with_ids(new_embedding.reshape(1, -1), np.array([product_id]))
+                self._index.add_with_ids(new_embedding.reshape(1, -1), np.array([product_id]))
                 self.embeddings_dict[product_id] = new_embedding
             except Exception as e:
-                print(f"Error updating embeddings for product ID {product_id}: {e}")
+                raise RuntimeError(f"Error updating embeddings for product ID {product_id}: {e}")
 
     def remove_product_by_id(self, product_id: str):
         """Removes a product by ID from the index and the underlying data store."""

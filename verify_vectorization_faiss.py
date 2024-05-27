@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 from rag_application.modules.vector_index_faiss import VectorIndex
 from faker import Faker
+import random
 from typing import Tuple
 import string
 
@@ -155,6 +156,99 @@ class TestVectorIndex(unittest.TestCase):
         with self.assertRaises(RuntimeError) as context:
             self.vector_index.search_index(searchable_terms[0], k=5)
         self.assertIn("Index is not initialized.", str(context.exception))
+
+    def test_find_changed_products(self):
+        """Test finding products with changed descriptions."""
+        self.set_up_data()
+
+        first_10_vectors = self.vector_index.get_first_10_vectors()
+
+        # Randomly select 3 vectors to update.
+        selected_product_ids = first_10_vectors.sample(n=3)['product_id'].tolist()
+
+        # Create new descriptions
+        new_descriptions = {}
+        for product_id in selected_product_ids:
+            new_descriptions[product_id] = f"Updated description for product {product_id}"
+
+        # Test identifying the changed vectors.
+        changed_product_ids = self.vector_index.find_changed_products(first_10_vectors.set_index('product_id')['product_description'], new_descriptions)
+
+        expected_changed_product_ids = set(selected_product_ids)
+        self.assertEqual(changed_product_ids, expected_changed_product_ids, "Incorrect product IDs identified as changed")
+
+    def test_update_product_descriptions(self):
+        """Test updating product descriptions and regenerating embeddings using batch updates."""
+        self.set_up_data()
+
+        # Randomly select a subset of products to update.
+        all_product_ids = self.vector_index.get_all_product_ids()
+        selected_product_ids = random.sample(all_product_ids, k=3)
+
+        # Create new descriptions for these products.
+        new_descriptions = {product_id: f"Updated description for product {product_id}" for product_id in selected_product_ids}
+
+        self.vector_index.update_product_descriptions(new_descriptions)
+
+        # Verify descriptions have been updated correctly.
+        for product_id, new_description in new_descriptions.items():
+            updated_row = self.vector_index.products_df.loc[self.vector_index.products_df['product_id'] == product_id]
+            self.assertEqual(updated_row.iloc[0]['product_description'], new_description)
+            self.assertEqual(updated_row.iloc[0]['combined_text'],
+                            f"{updated_row.iloc[0]['product_title']} {new_description}")
+
+        # Verify that the embeddings for the updated products have been regenerated correctly.
+        for product_id, _ in new_descriptions.items():
+            # Fetch the original embedding
+            original_embedding = self.vector_index.get_embedding(product_id)
+
+            # Fetch the updated embedding
+            updated_embedding = self.vector_index.get_embedding(product_id)
+
+            # Compare the original and updated embeddings
+            self.assertTrue(np.allclose(original_embedding, updated_embedding, atol=1e-6),
+                        f"The embeddings for product {product_id} did not match after update.")
+
+    def test_remove_product_by_id(self):
+        """Test the remove_product_by_id method."""
+        self.set_up_data()
+
+        # Select product IDs for testing
+        all_product_ids = self.vector_index.get_all_product_ids()
+        product_to_remove = all_product_ids[0]
+        other_product_ids = all_product_ids[1:3]  # Using the next two product IDs for verification
+
+        # Remove a product
+        self.vector_index.remove_product_by_id(product_to_remove)
+
+        # Verify the product has been removed from the DataFrame
+        remaining_rows = self.vector_index.products_df[self.vector_index.products_df['product_id'] != product_to_remove]
+        self.assertEqual(len(remaining_rows), len(self.vector_index.products_df))
+
+        # Verify the product's embedding has been removed from the FAISS index
+        with self.assertRaises(Exception) as context:
+            self.verify_embedding_removed(product_to_remove)
+        self.assertTrue("Embedding not found" in str(context.exception),
+                        "The embedding believed removed was still found")
+
+        # Check that other products remain unchanged
+        for product_id in other_product_ids:
+            updated_row = self.vector_index.products_df.loc[self.vector_index.products_df['product_id'] == product_id]
+            self.assertIsNotNone(updated_row.iloc[0])
+
+        # Attempt to remove a nonexistent product
+        with self.assertRaises(Exception) as context:
+            self.vector_index.remove_product_by_id("nonexistent_product_id")
+        self.assertTrue("product_id not found." in str(context.exception),
+                        "The product_id believed removed was still found")
+
+    def verify_embedding_removed(self, product_id):
+        """Verifies that the embedding for a given product ID has been removed from the FAISS index."""
+        if product_id not in self.vector_index.products_df['product_id'].values:
+            raise RuntimeError("Embedding not found")
+        else:
+            # If the embedding is fetched successfully.
+            raise RuntimeError("Error: Embedding believed removed was found")
 
 
 if __name__ == '__main__':

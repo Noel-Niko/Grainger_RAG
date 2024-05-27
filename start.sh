@@ -14,7 +14,6 @@ conda env list
 echo "Python path:"
 which python
 
-
 # Source the shell profile to apply Conda environment
 source ~/.bashrc
 source ~/.zshrc
@@ -28,8 +27,6 @@ conda install -y -c conda-forge faiss-cpu
 conda install -y pandas
 conda install -y numpy
 conda install -y ChatGPT
-
-
 
 # Navigate to the directory containing scripts and data
 cd /app || { echo "Failed to change directory to /app"; exit 1; }

@@ -56,7 +56,9 @@ ENV PYTHONPATH="/opt/conda/envs/myenv/lib/python3.10/site-packages"
 
 # Expose port
 EXPOSE 8505
-# Make the script executable
-RUN #chmod +x /app/start.sh
+## Make the script executable
+#RUN #chmod +x /app/start.sh
+# Create a Conda environment named 'myenv'
+RUN conda create --name myenv python=3.10
 
 CMD ["./start.sh"]

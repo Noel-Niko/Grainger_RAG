@@ -20,10 +20,15 @@ source ~/.bashrc
 source ~/.zshrc
 
 # Install required packages
+echo "Install conda packages"
 conda install -y -c conda-forge transformers
 conda install -y -c pytorch pytorch torchvision torchaudio cpuonly
 conda install -y streamlit
 conda install -y -c conda-forge faiss-cpu
+conda install -y pandas
+conda install -y numpy
+conda install -y ChatGPT
+
 
 
 # Navigate to the directory containing scripts and data

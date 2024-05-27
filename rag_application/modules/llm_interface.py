@@ -1,5 +1,6 @@
 # Import necessary modules
-from langchain.llms import ChatGPT
+import ChatGPT
+
 
 class LLMInteraction:
     def __init__(self, model_name='gpt-chat', api_token=None):
@@ -15,7 +16,6 @@ class LLMInteraction:
             """
         response = self.llm.generate_response(query)
         return response
-
 
 # def initialize_llm_model(model_name='gpt-chat'):
 #     # Initialize the LLM model

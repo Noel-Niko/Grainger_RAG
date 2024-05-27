@@ -102,10 +102,14 @@ class TestVectorIndex(unittest.TestCase):
         self.assertTrue(os.path.exists(self.vector_index.products_file), "Products file does not exist.")
 
         # Create the FAISS index
+        print("creating the FAISS index")
         self.vector_index.create_faiss_index()
+        print("FAISS index created")
 
         # Verify that the FAISS index is now populated
+        print("Verifying the FAISS index")
         self.assertIsNotNone(self.vector_index, "FAISS index is not created.")
+        print("FAISS index verified")
 
     def test_create_faiss_index(self):
         """Test creating the index."""

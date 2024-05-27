@@ -35,7 +35,7 @@ class VectorIndex:
         print("Loading preprocessed products.")
         try:
             self.products_df = pd.read_parquet(self.products_file)
-            print("Completed loading preprocessed porducts.")
+            print("Completed loading preprocessed products.")
         except FileNotFoundError:
             print(f"File {self.products_file} not found.")
         except Exception as e:
@@ -45,7 +45,9 @@ class VectorIndex:
         """Encodes a list of texts to BERT embeddings with error handling."""
         print("Encoding text to embedding.")
         embeddings = []
+        print("Tokenizing...")
         tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
+        print("Creating model via AutoModel.from_pretrained('bert-base-uncased')...")
         model = AutoModel.from_pretrained('bert-base-uncased')
 
         total_batches = (len(texts) + self.batch_size - 1)
@@ -62,7 +64,7 @@ class VectorIndex:
                 print(f"Finished encoding text batch {batch} of {total_batches}.")
             except Exception as e:
                 print(f"An error occurred during embedding extraction: {e}")
-
+        print("Returning embeddings.")
         return np.array(embeddings)
 
     def create_faiss_index(self):
@@ -119,8 +121,17 @@ class VectorIndex:
         # Search the FAISS index
         print("Searching the FAISS index.")
         distance, result_index = self._index.search(query_vector[0], k)
-        print(f"Returning distance: {distance.tolist()[0]}")
-        print(f"Returning distance: {result_index.tolist()[0]}")
+
+        try:
+            print(f"Returning distance: {str(distance.tolist()[0])}")
+        except Exception as e:
+            print("Error: Unable to convert distance data to string")
+
+        try:
+            print(f"Returning result_index: {str(result_index.tolist()[0])}")
+        except Exception as e:
+            print("Error: Unable to convert results data to string")
+
         return distance, result_index
 
     def find_changed_products(self, old_descriptions, new_descriptions):
@@ -134,11 +145,17 @@ class VectorIndex:
         Returns:
         - set: Set of product IDs whose descriptions have changed.
         """
+        print("Searching for changed products.")
         changed_products = set()
         for product_id, new_desc in new_descriptions.items():
             old_desc = old_descriptions.get(product_id)
             if old_desc != new_desc:
                 changed_products.add(product_id)
+        try:
+            print(f"Returning changed_products: {str(changed_products)}")
+        except Exception as e:
+            print("Error: Unable to convert changed_products data to string")
+
         return changed_products
 
     def update_product_descriptions(self, updates):
@@ -151,6 +168,7 @@ class VectorIndex:
         Raises:
         - KeyError: If a product ID in updates is not found in the DataFrame.
         """
+        print("Making batch updates for the descriptions of multiple products and regenerating their embeddings.")
         # Find products whose descriptions have changed
         changed_products = self.find_changed_products(
             {pid: row['product_description'] for pid, row in self.products_df.iterrows()}, updates)
@@ -165,13 +183,19 @@ class VectorIndex:
                 product_index, 'combined_text'] = f"{self.products_df.at[product_index, 'product_title']} {new_description}"
 
         # Regenerate embeddings only for changed products
+        try:
+            print(f"Changed products list: {str(list(changed_products))}")
+        except Exception as e:
+            print("Error: Unable to convert changed products list to string")
         if changed_products:
             self.update_embeddings_for_changed_products(list(changed_products))
 
     def update_embeddings_for_changed_products(self, changed_product_ids: List[str]):
         """Re-encodes and re-adds embeddings for products whose descriptions were changed."""
+        print("Re-encoding and re-adding embeddings for products whose descriptions were changed.")
         for product_id in changed_product_ids:
             try:
+                print(f"Product: {product_id}...")
                 product_index = self.products_df[self.products_df['product_id'] == product_id].index[0]
                 combined_text = f"{self.products_df.at[product_index, 'product_title']} {self.products_df.at[product_index, 'product_description']}"
                 new_embedding = self.encode_text_to_embedding([combined_text])[0]
@@ -179,26 +203,32 @@ class VectorIndex:
                 self.embeddings_dict[product_id] = new_embedding
             except Exception as e:
                 raise RuntimeError(f"Error updating embeddings for product ID {product_id}: {e}")
+        print("Completed embedding updates.")
 
     def remove_product_by_id(self, product_id: str):
         """Removes a product by ID from the index and the underlying data store."""
+        print(f"Removing a product by {product_id} from the index and the underlying data store.")
         if product_id not in self.products_df['product_id'].values:
             raise RuntimeError("product_id not found.")
 
         product_index = self.products_df[self.products_df['product_id'] == product_id].index[0]
         self.products_df.drop(product_index, inplace=True)
         self.create_faiss_index()  # Re-create the index after removing the product
+        print(f"Completed removing a product by {product_id} from the index and the underlying data store.")
 
     def get_all_product_ids(self):
         """Returns all unique product IDs from the products_df DataFrame."""
+        print("Returning all unique product IDs from the products_df DataFrame...")
         return self.products_df['product_id'].unique().tolist()
 
     def get_embedding(self, product_id):
         """Fetches the embedding for a given product ID."""
+        print(f"Fetching the embedding for {product_id}.")
         embedding = self.embeddings_dict.get(product_id)
         if embedding is None:
+            print("Embedding not found")
             raise RuntimeError("Embedding not found")
-
+        print("Returning embedding")
         return embedding
 
     def get_first_10_vectors(self):

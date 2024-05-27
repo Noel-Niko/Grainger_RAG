@@ -40,48 +40,43 @@
 
 
 import streamlit as st
-from rag_application.modules.vector_index_faiss import VectorIndex
+from rag_application.modules.vector_index_faiss import VectorIndex  # Adjusted import statement
 from rag_application.modules.llm_interface import LLMInteraction
 from rag_application.utils.constants import langchainApiKey
-from langsmith.wrappers import wrap_openai
-from langsmith import traceable
 
-# Wrap the LLM interaction with LangSmith's tracing capabilities
 llm_interaction = LLMInteraction(model_name='gpt-chat', api_token=langchainApiKey)
 llm_interaction = wrap_openai(llm_interaction)
 
 
-@traceable
 def generate_response_wrapper(query: str):
     return llm_interaction.generate_response(query)
 
 
 class RAGApplication:
     def __init__(self, products_file):
-        self.vector_index = VectorIndex(products_file)
+        self.vector_index = VectorIndex.getInstance()  # Use the singleton pattern
         self.llm_interaction = LLMInteraction(model_name='gpt-chat', api_token=langchainApiKey)
         self.llm_interaction = wrap_openai(self.llm_interaction)
 
     def main(self):
         st.title("Relevance-Aware Generation (RAG) Application")
-
         query = st.text_input("Enter your product-based question:")
         if st.button("Submit"):
             response = self.process_query(query)
             st.write("Response:", response)
 
     def process_query(self, query):
-        relevant_product_ids = self.vector_index.search_index(query, k=5)  # Adjust k as needed
+        refined_query = generate_response_wrapper(query)
+        _, relevant_product_indices = self.vector_index.search_index(refined_query, k=5)  # Search for top 5 matches
         product_info = ", ".join(
             [f"ID: {pid}, Name: {self.vector_index.products_df.loc[pid, 'product_name']}" for pid in
-             relevant_product_ids]
+             relevant_product_indices]
         )
-        refined_query = f"Refining query with product info: {product_info}"
-        response = generate_response_wrapper(refined_query)
+        response = f"Top 5 matching products: {product_info}"
         return response
 
 
 if __name__ == "__main__":
-    products_file = 'path/to/your/products/file.parquet'  # Update this path
+    products_file = 'path/to/your/products/file.parquet'
     app = RAGApplication(products_file)
     app.main()

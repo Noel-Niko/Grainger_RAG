@@ -20,7 +20,7 @@ RUN bash Anaconda3-2024.02-1-Linux-x86_64.sh -b -u -p /opt/conda
 RUN rm Anaconda3-2024.02-1-Linux-x86_64.sh
 
 # Initialize Conda for bash and zsh shells, modify PATH, and create a Conda environment named 'myenv' in a single RUN instruction
-RUN /bin/bash -c "source /opt/conda/etc/profile.d/conda.sh && conda init bash && conda init zsh && export PATH=/opt/conda/bin:$PATH && conda create --name myenv python=3.10"
+RUN /bin/bash -c "source /opt/conda/etc/profile.d/conda.sh && conda init bash && conda init zsh && export PATH=/opt/conda/bin:$PATH && conda create -n myenv python=3.10"
 
 
 # Install Rust compiler and Cargo and export the PATH variable
@@ -63,4 +63,6 @@ EXPOSE 8505
 ## Make the script executable
 RUN #chmod +x /app/start.sh
 
-CMD ["./start.sh"]
+#CMD ["./start.sh"]
+
+CMD ["sh", "-c", "export PATH=/opt/conda/envs/myenv/bin:$PATH &&./start.sh"]

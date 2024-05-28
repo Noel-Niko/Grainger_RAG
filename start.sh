@@ -13,7 +13,7 @@ which python
 
 # Activate the Conda environment
 conda activate myenv
-
+conda config --env --set default_python 3.10
 
 # Install required packages
 echo "Install conda packages"
@@ -29,11 +29,14 @@ conda install -y numpy
 # Navigate to the directory containing scripts and data
 cd /app || { echo "Failed to change directory to /app"; exit 1; }
 
+echo "*********************************************************Python version:"
+python --version
+
 # Run the preprocessing script
-python /modules.preprocess_data || { echo "Preprocessing failed"; exit 1; }
+python rag_application/modules/preprocess_data.py || { echo "Preprocessing failed"; exit 1; }
 
 # Run the FAISS vector index script
-python /modules.vector_index_faiss || { echo "FAISS vector index build failed"; exit 1; }
+python rag_application/modules.vector_index_faiss.py || { echo "FAISS vector index build failed"; exit 1; }
 
 # Start Streamlit
-exec streamlit run /modules/user_interface.py --server.port=8505 --server.address=0.0.0.0 || { echo "Streamlit failed to start"; exit 1; }
+exec streamlit run rag_application/modules/user_interface.py --server.port=8505 --server.address=0.0.0.0 || { echo "Streamlit failed to start"; exit 1; }

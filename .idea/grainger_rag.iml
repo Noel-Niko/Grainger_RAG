@@ -1,7 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <module type="PYTHON_MODULE" version="4">
   <component name="NewModuleRootManager">
-    <content url="file://$MODULE_DIR$" />
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/rag_application" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/rag_application/modules" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/rag_application/modules/shopping_queries_dataset" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/rag_application/test_shopping_queries_dataset" isTestSource="false" />
+    </content>
     <orderEntry type="jdk" jdkName="myenv" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>

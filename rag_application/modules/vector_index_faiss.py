@@ -5,7 +5,6 @@ from transformers import AutoTokenizer, AutoModel
 import faiss
 from typing import Tuple, List
 
-from rag_application.constants import langchainApiKey
 from rag_application.modules.initialize_llm_model import LLMInteraction
 
 

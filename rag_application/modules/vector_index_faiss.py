@@ -18,14 +18,30 @@ class VectorIndex:
     _index = None
     _products_df = None
 
+    # @classmethod
+    # def getInstance(cls):
+    #     """Static access method to get the singleton instance."""
+    #     if cls._instance is None:
+    #         cls._instance = cls()
+    #     return cls._instance
+
     @classmethod
-    def getInstance(cls):
-        """Static access method to get the singleton instance."""
+    def getInstance(cls, **kwargs):
+        """Static access method to get the singleton instance, enforcing required arguments."""
         if cls._instance is None:
-            cls._instance = cls()
+            # Safely retrieve 'products_file' from kwargs, providing a default value if not found
+            products_file = kwargs.get('products_file', '')
+
+            # Check if 'products_file' is a string
+            if not isinstance(products_file, str):
+                raise TypeError("'products_file' argument must be a string")
+
+            # Proceed with instantiation if 'products_file' is valid
+            cls._instance = cls(products_file=products_file)
+
         return cls._instance
 
-    def __init__(self, products_file: str, nlist: int = 100, m: int = 16, batch_size: int = 32):
+    def __init__(self, products_file=None, nlist=100, m=16, batch_size=32):
         self.llm = None
         self.products_file = products_file
         self.nlist = nlist
@@ -33,6 +49,14 @@ class VectorIndex:
         self.batch_size = batch_size
         self.embeddings_dict = {}
         print("VectorIndex instance created.")
+    # def __init__(self, products_file: str, nlist: int = 100, m: int = 16, batch_size: int = 32):
+    #     self.llm = None
+    #     self.products_file = products_file
+    #     self.nlist = nlist
+    #     self.m = m
+    #     self.batch_size = batch_size
+    #     self.embeddings_dict = {}
+    #     print("VectorIndex instance created.")
 
     def load_processed_products(self):
         """Loads the processed products data with error handling."""

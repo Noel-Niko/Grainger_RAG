@@ -6,8 +6,9 @@ from rag_application.constants import langchainApiKey
 
 class RAGApplication:
     def __init__(self, products_file):
-        self.vector_index = VectorIndex.getInstance()
-        self.llm_model = LLMInteraction.initialize_llm_model(model_name='gpt-chat', api_token=langchainApiKey)
+        self.products_file = products_file
+        self.vector_index = VectorIndex.getInstance(products_file=self.products_file)
+        self.llm_model = LLMInteraction.initialize_llm_model(api_token=langchainApiKey)
         self.current_query = None
         # self.llm_interaction = wrap_openai(self.llm_interaction)
 

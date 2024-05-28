@@ -1,8 +1,12 @@
 import pandas as pd
 import numpy as np
+from pyChatGPT import ChatGPT
 from transformers import AutoTokenizer, AutoModel
 import faiss
 from typing import Tuple, List
+
+from rag_application.constants import langchainApiKey
+from rag_application.modules.initialize_llm_model import LLMInteraction
 
 
 class VectorIndex:
@@ -23,6 +27,7 @@ class VectorIndex:
         return cls._instance
 
     def __init__(self, products_file: str, nlist: int = 100, m: int = 16, batch_size: int = 32):
+        self.llm = None
         self.products_file = products_file
         self.nlist = nlist
         self.m = m
@@ -234,6 +239,27 @@ class VectorIndex:
     def get_first_10_vectors(self):
         """Returns the first 10 vectors in the index dataframe. Used for testing."""
         return self.products_df.head(10)
+
+    def refine_query_with_chatgpt(self, query: str) -> Tuple[str, ChatGPT]:
+        self.llm = LLMInteraction.initialize_llm_model(api_token=self.langchainApiKey)
+        prompt_wrapper = ('I received the following message and want a short list of key words to use to search my '
+                          'FAISS Index for relevant products and descriptions.')
+        refined_query = LLMInteraction.llm_interaction(f"{prompt_wrapper} - {query}", self.llm)
+        return refined_query, self.llm
+
+    def search_and_generate_response(self, refined_query: str, llm, k: int = 5) -> str:
+        _, relevant_product_indices = self.search_index(refined_query, k=k)
+        product_info = ", ".join(
+            [f"ID: {pid}, "
+             f"Name: {self.products_df.loc[pid, 'product_title']}, "
+             f"Description: {self.products_df.loc[pid, 'product_description']},"
+             f"Key Facts: {self.products_df.loc[pid, 'product_bullet_point']},"
+             f"Brand: {self.products_df.loc[pid, 'product_brand']},"
+             f"Color: {self.products_df.loc[pid, 'product_color']},"
+             f"Location: {self.products_df.loc[pid, 'product_locale']},"
+             for pid in relevant_product_indices]
+        )
+        return product_info
 
 
 if __name__ == "__main__":

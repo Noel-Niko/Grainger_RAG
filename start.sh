@@ -20,14 +20,24 @@ conda config --add channels conda-forge
 
 # Install required packages
 echo "Install conda packages"
+conda config --set pip_interop_enabled True
+
+conda install -y -c conda-forge faiss-cpu==1.7.3
+
+conda install -y langchain==0.1.20
+conda install -y langsmith==0.1.63
+conda install -y numpy==1.26.4
+conda install -y pandas==2.2.2
+conda install -y scikit-learn==1.5.0
+conda install -y streamlit==1.35.0
+conda install -y -c pytorch pytorch=2.3.0 torchvision torchaudio -c defaults
+
+conda install -y -c conda-forge transformers==4.41.1
 conda install -y pip
 pip install -U pyChatGPT
-conda install -y -c conda-forge transformers
-conda install -y -c pytorch pytorch=2.3.0 torchvision torchaudio -c pytorch -c defaults cpuonly
-conda install -y streamlit
-conda install -y -c conda-forge faiss-cpu=1.8.0
-conda install -y pandas
-conda install -y numpy
+
+#conda install -y pytest==8.2.1
+#conda install -y Faker==25.2.0
 
 # Navigate to the directory containing scripts and data
 cd /app || { echo "Failed to change directory to /app"; exit 1; }

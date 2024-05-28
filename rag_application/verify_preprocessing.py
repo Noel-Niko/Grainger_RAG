@@ -1,6 +1,7 @@
 import unittest
 import pandas as pd
 from rag_application.modules.preprocess_data import DataPreprocessor
+import os
 
 
 class TestDataPreprocessing(unittest.TestCase):
@@ -11,6 +12,9 @@ class TestDataPreprocessing(unittest.TestCase):
         self.examples_file = 'test_shopping_queries_dataset/shopping_queries_dataset_examples.parquet'
         self.products_file = 'test_shopping_queries_dataset/shopping_queries_dataset_products.parquet'
         self.sources_file = 'test_shopping_queries_dataset/shopping_queries_dataset_sources.csv'
+
+        # Debugging: Print current working directory
+        print(f"Current working directory: {os.getcwd()}")
 
     def test_data_loading(self):
         """Test loading of data before preprocessing."""

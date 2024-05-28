@@ -1,6 +1,11 @@
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 import os
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 class DataPreprocessor:
@@ -10,10 +15,16 @@ class DataPreprocessor:
         self.sources_df = None
 
     def preprocess_data(self):
+        logging.info("Starting data preprocessing...")
         # Load the dataset files
         self.examples_df = pd.read_parquet('shopping_queries_dataset/shopping_queries_dataset_examples.parquet')
         self.products_df = pd.read_parquet('shopping_queries_dataset/shopping_queries_dataset_products.parquet')
         self.sources_df = pd.read_csv('shopping_queries_dataset/shopping_queries_dataset_sources.csv')
+
+        logging.info("Loaded DataFrames shapes:")
+        logging.info(f"Examples DataFrame shape: {self.examples_df.shape}")
+        logging.info(f"Products DataFrame shape: {self.products_df.shape}")
+        logging.info(f"Sources DataFrame shape: {self.sources_df.shape}")
 
         print("Examples DataFrame shape:", self.examples_df.shape)
         print("Products DataFrame shape:", self.products_df.shape)
@@ -48,11 +59,14 @@ class DataPreprocessor:
                     df.to_csv(file_path, index=False)
                 else:
                     df.to_parquet(file_path)
+            logging.info("Data preprocessing completed successfully.")
 
         except FileNotFoundError:
-            print(f"Error: One or more required files were not found. Please check the file paths.")
+            logging.error(f"Error: One or more required files were not found. Please check the file paths.")
+        except PermissionError:
+            logging.error(f"Error: Permission denied when accessing a file or directory.")
         except Exception as e:
-            print(f"An unexpected error occurred: {e}")
+            logging.error(f"An unexpected error occurred: {e}")
             return
 
         # Improve search speed. Note: watch memory implications over time.
@@ -60,7 +74,7 @@ class DataPreprocessor:
         for _, row in self.products_df.iterrows():
             product_id = row['product_id']
             product_mappings[product_id] = (row['product_title'], row['product_description'])
-
+        logging.info("Data preprocessing completed successfully.")
         print("Data preprocessing completed successfully.")
 
 

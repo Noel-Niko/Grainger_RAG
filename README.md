@@ -1,3 +1,4 @@
+A Simple Relevance-Aware Generation (RAG) Application
 # grainger_rag
 
 Proposed Plan for Managing FAISS Index with AWS Services
@@ -54,7 +55,7 @@ LOCAL INSTALL AND RUN
   - Run local_start.sh
 
   
-LOCAL UNIT TESTING:  
+LOCAL UNIT TESTING  
   Note: due to the use of conda to help manage library version compatibility, the packages to install are listed primarily in the start shell and only those requiring a pip install in requirements.txt To set up a local env 
   1. Create a conda env
   2. Install the packages as listed in both requirements.txt and local_start.sh AND INCLUDE the commented-out test packages:

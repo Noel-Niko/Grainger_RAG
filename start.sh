@@ -1,12 +1,15 @@
 #!/bin/bash
-
-cd /app
-
+# todo: removed only for local testing
+#cd /app
 # Ensure Conda environment is properly initialized
-source /opt/conda/etc/profile.d/conda.sh
+#source /opt/conda/etc/profile.d/conda.sh
+
 
 # Activate the Conda environment
-conda activate ragEnv
+#conda activate ragEnv
+conda activate rag_env
+
+source /opt/anaconda3/envs/rag_env/python
 
 # Verify the Conda environment
 echo "Active Conda environment:"
@@ -23,7 +26,8 @@ conda config --set pip_interop_enabled True
 
 # Install required packages
 echo "Installing conda packages..."
-conda install -y -c conda-forge faiss-cpu==1.7.3
+#conda install -y -c conda-forge faiss-cpu==1.7.3
+conda install -c pytorch faiss-cpu=1.7.4 mkl=2021 blas=1.0=mkl
 conda install -y langchain==0.1.20
 conda install -y langchain-openai==0.0.8
 conda install -y langsmith==0.1.63
@@ -48,6 +52,9 @@ python -c "import faiss; print(faiss.__version__)"
 
 # Run the preprocessing script
 python rag_application/modules/preprocess_data.py || { echo "Preprocessing failed"; exit 1; }
+
+# Add a delay to account for any file system latency
+sleep 5
 
 # Run the FAISS vector index script
 python rag_application/modules/vector_index_faiss.py || { echo "FAISS vector index build failed"; exit 1; }

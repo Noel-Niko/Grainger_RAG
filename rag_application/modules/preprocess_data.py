@@ -56,9 +56,14 @@ class DataPreprocessor:
                 df = getattr(self, f'{df_name}_df')
                 file_path = os.path.join(output_dir, file_name)
                 if df_name == 'sources':
+                    print(f"Saving file to {file_path}")
+                    logging.info(f"Saving file to {file_path}")
                     df.to_csv(file_path, index=False)
                 else:
+                    print(f"Saving file to {file_path}")
+                    logging.info(f"Saving file to  {file_path}")
                     df.to_parquet(file_path)
+
             logging.info("Data preprocessing completed successfully.")
 
         except FileNotFoundError:
@@ -69,7 +74,7 @@ class DataPreprocessor:
             logging.error(f"An unexpected error occurred: {e}")
             return
 
-        # Improve search speed. Note: watch memory implications over time.
+        # Improves search speed. Note: watch memory implications over time.
         product_mappings = {}
         for _, row in self.products_df.iterrows():
             product_id = row['product_id']

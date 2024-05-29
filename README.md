@@ -1,5 +1,6 @@
 # A Simple Relevance-Aware Generation (RAG) Application
 
+![Starting Up Web Interface](https://github.com/Noel-Niko/grainger_rag/assets/83922762/cc674a06-bd70-4f21-932d-b352789d154a)
 
 Proposed Plan for Managing FAISS Index with AWS Services
 
@@ -49,6 +50,7 @@ Seamless Deployments: Green/Blue deployment strategy ensures zero downtime durin
 
 
 LOCAL INSTALL AND RUN
+  - Create a local conda env named: rag_env
   - Download https://github.com/amazon-science/esci-data/blob/main/shopping_queries_dataset/shopping_queries_dataset_products.parquet
       - Place it in BOTH:
           - rag_application/modules/shopping_queries_dataset
@@ -58,8 +60,8 @@ LOCAL INSTALL AND RUN
 
   
 LOCAL UNIT TESTING  
-  Note: due to the use of conda to help manage library version compatibility, the packages to install are listed primarily in the start shell and only those requiring a pip install in requirements.txt To set up a local env 
-  1. Create a conda env
+  Note: Due to the use of conda to help manage library version compatibility, the packages to install are listed primarily in the start shell and only those requiring a pip install in requirements.txt To set up a local env 
+  1. Create a conda env named: rag_env
   2. Install the packages as listed in both requirements.txt and local_start.sh AND INCLUDE the commented-out test packages:
       - #conda install -y pytest==8.2.1  <<< testing pkg
       - #conda install -y Faker==25.2.0  <<< testing pkg

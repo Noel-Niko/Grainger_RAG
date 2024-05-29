@@ -45,7 +45,7 @@ Conclusion:
 ![image](https://github.com/Noel-Niko/grainger_rag/assets/83922762/8a125cdb-e533-42a8-903c-8337132e9f86)
 
 LOCAL INSTALL AND RUN
-  Run local_start.sh
+  - Run local_start.sh
   
 LOCAL UNIT TESTING:  
   Note: due to the use of conda to help manage library version compatibility, the packages to install are listed primarily in the start shell and only those requiring a pip install in requirements.txt To set up a local env 
@@ -57,7 +57,7 @@ LOCAL UNIT TESTING:
 
 
 
-TROUBLE SHOOTING
+TROUBLE-SHOOTING
 
 If - FAISS vector index build failed ./start.sh: line 43:   174 Killed    python -m rag_application.modules.vector_index_faiss
 THEN - increase memory limits e.g. in Docker to handle the required large shopping_queries_dataset_products.parquet 

@@ -1,5 +1,5 @@
 # A Simple Relevance-Aware Generation (RAG) Application
-grainger_rag
+
 
 Proposed Plan for Managing FAISS Index with AWS Services
 

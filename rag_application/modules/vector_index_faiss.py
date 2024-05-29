@@ -31,10 +31,22 @@ class VectorIndex:
 
             # Check if 'products_file' is a string
             if not isinstance(products_file, str):
+                print("'products_file' argument must be a string")
+                logging.error("'products_file' argument must be a string")
                 raise TypeError("'products_file' argument must be a string")
 
             # Proceed with instantiation if 'products_file' is valid
+            print("Creating instance of VectorIndex...")
+            logging.info("Creating instance of VectorIndex...")
             cls._instance = cls(products_file=products_file)
+
+            try:
+                print("Instance of VectorIndex created. Initializing the instance of VectorIndex...")
+                logging.info("Instance of VectorIndex created. Initializing the instance of VectorIndex...")
+                cls._instance.create_faiss_index()
+            except Exception as e:
+                logging.error(f"Failed to initialize the FAISS index: {str(e)}")
+                print(f"Error initializing the FAISS index: {str(e)}")
 
         return cls._instance
 

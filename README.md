@@ -39,22 +39,41 @@ Seamless Deployments: Green/Blue deployment strategy ensures zero downtime durin
 Conclusion:
 
 
+
 ![image](https://github.com/Noel-Niko/grainger_rag/assets/83922762/cb599178-5400-4ce8-984b-bec9e6d4e869)
 
 ![image](https://github.com/Noel-Niko/grainger_rag/assets/83922762/8a125cdb-e533-42a8-903c-8337132e9f86)
+
+LOCAL INSTALL AND RUN
+  Run local_start.sh
+  
+LOCAL UNIT TESTING:  
+  Note: due to the use of conda to help manage library version compatibility, the packages to install are listed primarily in the start shell and only those requiring a pip install in requirements.txt To set up a local env 
+  1. Create a conda env
+  2. Install the packages as listed in both requirements.txt and local_start.sh AND INCLUDE the commented-out test packages:
+      - #conda install -y pytest==8.2.1  <<< testing pkg
+      - #conda install -y Faker==25.2.0  <<< testing pkg
+  4. In Pycharm system settings set your new conda env as the python interpreter.
 
 
 
 TROUBLE SHOOTING
 
 If - FAISS vector index build failed ./start.sh: line 43:   174 Killed    python -m rag_application.modules.vector_index_faiss
-THEN - increase memory limits in Docker to handle the required large shopping_queries_dataset_products.parquet
+THEN - increase memory limits e.g. in Docker to handle the required large shopping_queries_dataset_products.parquet 
+   OR use self.products_df.dropna().drop_duplicates().sample(frac=0.001) in preprocess_data.py
 
 IF - your Docker build fails with unfound url's
 THEN - you are likely running on a Grainger computer with restrictions circumventing the wget
 
-IF - you are running unit tests, cna the self._index.add(embeddings_np) causes infinite hanging or you receive a SIGABRT
-THEN - re-run the application an a NON apple silicone device
+IF - you are running unit tests, and the self._index.add(embeddings_np) causes infinite hanging or you receive a SIGABRT
+THEN - re-run the application in a NON-apple silicone device
+
+IF - you continue to experience 'hanging' or infinite looping, or receive a segmentation fault error.
+THEN - the cause is likely the mismatch between faiss-cpu, pytorch, python, and or using apple silicon  
+  - be aware: Faiss 1.7.3 is not compatible with Python >=3.10
+  - ensure your local is running in a conda env with the versions as directed above
+
 
 
 

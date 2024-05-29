@@ -1,6 +1,7 @@
 # A Simple Relevance-Aware Generation (RAG) Application
 
 ![Starting Up Web Interface](https://github.com/Noel-Niko/grainger_rag/assets/83922762/cc674a06-bd70-4f21-932d-b352789d154a)
+![Embedding](https://github.com/Noel-Niko/grainger_rag/assets/83922762/e43cdf54-e0bd-447b-8a64-4b34c173fbf7)
 
 Proposed Plan for Managing FAISS Index with AWS Services
 

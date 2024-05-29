@@ -1,14 +1,17 @@
+import os
 import streamlit as st
 from rag_application.modules.vector_index_faiss import VectorIndex
-from rag_application.modules.initialize_llm_model import LLMInteraction
-from rag_application.constants import langchainApiKey
+from rag_application.constants import chatOpenAiKey, initial_question_wrapper, prompt, no_matches
+from langchain_openai import ChatOpenAI
+from langchain_core.documents import Document
+from langchain.chains.combine_documents import create_stuff_documents_chain
 
 
 class RAGApplication:
     def __init__(self, products_file):
         self.products_file = products_file
         self.vector_index = VectorIndex.getInstance(products_file=self.products_file)
-        self.llm_model = LLMInteraction.initialize_llm_model(api_token=langchainApiKey)
+        self.llm_connection = ChatOpenAI(api_key=chatOpenAiKey)
         self.current_query = None
         # self.llm_interaction = wrap_openai(self.llm_interaction)
 
@@ -22,16 +25,25 @@ class RAGApplication:
 
     def process_query(self, query):
         # Parse the query using the LLM
-        refined_query, llm = self.vector_index.refine_query_with_chatgpt(query)
+        refined_query = self.llm_connection.invoke(f"{initial_question_wrapper} {query}").content
 
         # Search for the refined query in the FAISS index
-        faiss_response = self.vector_index.search_and_generate_response(refined_query, llm, k=5)
-        prompt_wrapper = (f"I was asked - {self.current_query}. Use this information to generate an answer to what I "
-                          f"was asked. I found: {faiss_response}")
-        return llm.llm_interaction(prompt_wrapper, llm)
+        context_faiss_response = self.vector_index.search_and_generate_response(refined_query, self.llm_connection, k=5)
+        if context_faiss_response is None:
+            context_faiss_response = no_matches
+
+        # Pass the product information back to the LLM to form a response message
+        document_chain = create_stuff_documents_chain(self.llm_connection, prompt)
+        context_document = Document(page_content=context_faiss_response)
+        return document_chain.invoke({
+            "input": f"{query}",
+            "context": [context_document]
+        })
 
 
 if __name__ == "__main__":
-    products_file = 'shopping_queries_dataset/processed_products.parquet'
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    data_dir = os.path.join(base_dir, 'shopping_queries_dataset')
+    products_file = os.path.join(data_dir, 'processed_products.parquet')
     app = RAGApplication(products_file)
     app.main()

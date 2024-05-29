@@ -1,12 +1,12 @@
+import os
+import time
+
 import pandas as pd
 import numpy as np
-from pyChatGPT import ChatGPT
+import transformers
 from transformers import AutoTokenizer, AutoModel
 import faiss
 from typing import Tuple, List
-
-from rag_application.modules.initialize_llm_model import LLMInteraction
-
 import logging
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -21,13 +21,6 @@ class VectorIndex:
     _instance = None
     _index = None
     _products_df = None
-
-    # @classmethod
-    # def getInstance(cls):
-    #     """Static access method to get the singleton instance."""
-    #     if cls._instance is None:
-    #         cls._instance = cls()
-    #     return cls._instance
 
     @classmethod
     def getInstance(cls, **kwargs):
@@ -55,15 +48,6 @@ class VectorIndex:
         print("VectorIndex instance created.")
         logging.info("VectorIndex instance created.")
 
-    # def __init__(self, products_file: str, nlist: int = 100, m: int = 16, batch_size: int = 32):
-    #     self.llm = None
-    #     self.products_file = products_file
-    #     self.nlist = nlist
-    #     self.m = m
-    #     self.batch_size = batch_size
-    #     self.embeddings_dict = {}
-    #     print("VectorIndex instance created.")
-
     def load_processed_products(self):
         """Loads the processed products data with error handling."""
         print("Loading preprocessed products.")
@@ -86,9 +70,13 @@ class VectorIndex:
         logging.info("Tokenizing...")
         print("Tokenizing...")
         tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
+
+        # Log transformers library version
+        logging.info(f"Transformers library version: {transformers.__version__}")
         logging.info("Creating model via AutoModel.from_pretrained('bert-base-uncased')...")
         print("Creating model via AutoModel.from_pretrained('bert-base-uncased')...")
         model = AutoModel.from_pretrained('bert-base-uncased')
+        logging.info("Completed creating model via AutoModel.from_pretrained('bert-base-uncased')...")
 
         total_batches = (len(texts) + self.batch_size - 1)
         for batch in range(0, len(texts), self.batch_size):
@@ -225,7 +213,8 @@ class VectorIndex:
         Raises:
         - KeyError: If a product ID in updates is not found in the DataFrame.
         """
-        logging.info("Making batch updates for the descriptions of multiple products and regenerating their embeddings.")
+        logging.info(
+            "Making batch updates for the descriptions of multiple products and regenerating their embeddings.")
         print("Making batch updates for the descriptions of multiple products and regenerating their embeddings.")
         # Find products whose descriptions have changed
         changed_products = self.find_changed_products(
@@ -263,8 +252,10 @@ class VectorIndex:
                 self._index.add_with_ids(new_embedding.reshape(1, -1), np.array([product_id]))
                 self.embeddings_dict[product_id] = new_embedding
             except Exception as e:
+                logging.error(f"Error updating embeddings for product ID {product_id}: {e}")
                 raise RuntimeError(f"Error updating embeddings for product ID {product_id}: {e}")
-        logging.error("Completed embedding updates.")
+
+        logging.info("Completed embedding updates.")
         print("Completed embedding updates.")
 
     def remove_product_by_id(self, product_id: str):
@@ -303,16 +294,6 @@ class VectorIndex:
         """Returns the first 10 vectors in the index dataframe. Used for testing."""
         return self.products_df.head(10)
 
-    def refine_query_with_chatgpt(self, query: str) -> Tuple[str, ChatGPT]:
-        logging.info("Refining query with ChatGPT")
-        self.llm = LLMInteraction.initialize_llm_model(api_token=self.langchainApiKey)
-        prompt_wrapper = ('I received the following message and want a short list of key words to use to search my '
-                          'FAISS Index for relevant products and descriptions.')
-        logging.info(f"Sending {prompt_wrapper} - {query}")
-        refined_query = LLMInteraction.llm_interaction(f"{prompt_wrapper} - {query}", self.llm)
-        logging.info(f"Returning: {refined_query}")
-        return refined_query, self.llm
-
     def search_and_generate_response(self, refined_query: str, llm, k: int = 5) -> str:
         _, relevant_product_indices = self.search_index(refined_query, k=k)
         product_info = ", ".join(
@@ -330,9 +311,31 @@ class VectorIndex:
 
 
 if __name__ == "__main__":
-    products_file = 'shopping_queries_dataset/processed_products.parquet'
-    vector_index = VectorIndex(products_file, batch_size=32)
-    vector_index.load_processed_products()
-    vector_index.create_faiss_index()
+    try:
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        data_dir = os.path.join(base_dir, 'shopping_queries_dataset')
+        products_file = os.path.join(data_dir, 'processed_products.parquet')
+
+        # Wait for the file to exist
+        max_retries = 10
+        wait_time = 5  # seconds
+
+        for attempt in range(max_retries):
+            if os.path.exists(products_file):
+                break
+            else:
+                logging.error(f"File {products_file} not found. Retrying in {wait_time} seconds...")
+                print(f"File {products_file} not found. Retrying in {wait_time} seconds...")
+                time.sleep(wait_time)
+        else:
+            logging.error(f"File {products_file} not found after {max_retries * wait_time} seconds.")
+            raise FileNotFoundError(f"File {products_file} not found after {max_retries * wait_time} seconds.")
+
+        vector_index = VectorIndex(products_file, batch_size=32)
+        vector_index.load_processed_products()
+        vector_index.create_faiss_index()
+    except Exception as e:
+        logging.error(f"Error creating the FAISS index: {e}")
+        raise RuntimeError(f"Error creating the FAISS index: {e}")
     logging.info("FAISS index created successfully.")
     print("FAISS index created successfully.")

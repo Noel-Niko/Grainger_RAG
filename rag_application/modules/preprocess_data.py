@@ -1,5 +1,4 @@
 import pandas as pd
-from sklearn.feature_extraction.text import TfidfVectorizer
 import os
 import logging
 
@@ -16,10 +15,18 @@ class DataPreprocessor:
 
     def preprocess_data(self):
         logging.info("Starting data preprocessing...")
+
+        # Dynamically determine the base directory and construct the full path to each file
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        data_dir = os.path.join(base_dir, 'shopping_queries_dataset')
+        examples_file = os.path.join(data_dir, 'shopping_queries_dataset_examples.parquet')
+        products_file = os.path.join(data_dir, 'shopping_queries_dataset_products.parquet')
+        sources_file = os.path.join(data_dir, 'shopping_queries_dataset_sources.csv')
+
         # Load the dataset files
-        self.examples_df = pd.read_parquet('shopping_queries_dataset/shopping_queries_dataset_examples.parquet')
-        self.products_df = pd.read_parquet('shopping_queries_dataset/shopping_queries_dataset_products.parquet')
-        self.sources_df = pd.read_csv('shopping_queries_dataset/shopping_queries_dataset_sources.csv')
+        self.examples_df = pd.read_parquet(examples_file)
+        self.products_df = pd.read_parquet(products_file)
+        self.sources_df = pd.read_csv(sources_file)
 
         logging.info("Loaded DataFrames shapes:")
         logging.info(f"Examples DataFrame shape: {self.examples_df.shape}")
@@ -34,7 +41,7 @@ class DataPreprocessor:
             # Data Cleaning
             self.examples_df = self.examples_df.dropna().drop_duplicates()
             # TODO: REDUCING THE SIZE OF THE FILE FOR INTEGRATION TESTING
-            self.products_df = self.products_df.dropna().drop_duplicates().sample(frac=0.001)
+            self.products_df = self.products_df.dropna().drop_duplicates().sample(frac=0.0001)
 
             self.sources_df = self.sources_df.dropna().drop_duplicates()
 
@@ -56,9 +63,14 @@ class DataPreprocessor:
                 df = getattr(self, f'{df_name}_df')
                 file_path = os.path.join(output_dir, file_name)
                 if df_name == 'sources':
+                    print(f"Saving file to {file_path}")
+                    logging.info(f"Saving file to {file_path}")
                     df.to_csv(file_path, index=False)
                 else:
+                    print(f"Saving file to {file_path}")
+                    logging.info(f"Saving file to  {file_path}")
                     df.to_parquet(file_path)
+
             logging.info("Data preprocessing completed successfully.")
 
         except FileNotFoundError:
@@ -69,7 +81,7 @@ class DataPreprocessor:
             logging.error(f"An unexpected error occurred: {e}")
             return
 
-        # Improve search speed. Note: watch memory implications over time.
+        # Improves search speed. Note: watch memory implications over time.
         product_mappings = {}
         for _, row in self.products_df.iterrows():
             product_id = row['product_id']

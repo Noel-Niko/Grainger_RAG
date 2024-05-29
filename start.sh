@@ -27,9 +27,9 @@ conda install -y -c conda-forge faiss-cpu==1.7.3
 conda install -y langchain==0.1.20
 conda install -y langchain-openai==0.0.8
 conda install -y langsmith==0.1.63
-conda install -y numpy==1.26.4
-conda install -y pandas==2.2.1
-conda install -y scikit-learn==1.5.0
+#conda install -y numpy==1.26.4
+#conda install -y pandas==2.2.1
+#conda install -y scikit-learn==1.5.0
 conda install -y streamlit==1.35.0
 conda install -y -c pytorch pytorch==2.2.2 torchvision torchaudio -c defaults
 conda install -y -c conda-forge transformers==4.41.1
@@ -40,6 +40,8 @@ pip install -U pyChatGPT
 
 source ~/.bashrc
 source ~/.zshrc
+
+
 
 # Faiss 1.7.3 is not compatible with Python >=3.10
 # Print python version

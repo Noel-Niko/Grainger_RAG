@@ -15,29 +15,30 @@ Green/Blue Deployment with Containerization: Adopt a Green/Blue deployment strat
 
 Detailed Workflow:
 
-Index Initialization:
+ - Index Initialization:
 
-Use a Lambda function to generate the initial FAISS index from the source data.
-Store the generated index in S3 as an object.
-Index Updates:
+ - Use a Lambda function to generate the initial FAISS index from the source data.
+ - Store the generated index in S3 as an object.
+ 
+ - Index Updates:
+    - Trigger Lambda functions in response to events (e.g., product updates).
+    - Retrieve the current index from S3.
+    - Apply necessary updates using FAISS update functions.
+    - Store the updated index back to S3.
 
-Trigger Lambda functions in response to events (e.g., product updates).
-Retrieve the current index from S3.
-Apply necessary updates using FAISS update functions.
-Store the updated index back to S3.
 Container Deployment:
+    - During deployments, retrieve the latest index from S3. 
+    - Provision new container instances with the fetched index.
+    - Gradually switch traffic to the new containers (Green/Blue deployment).
+    - Scale up or down the number of containers as needed.
 
-During deployments, retrieve the latest index from S3.
-Provision new container instances with the fetched index.
-Gradually switch traffic to the new containers (Green/Blue deployment).
-Scale up or down the number of containers as needed.
 Advantages:
 
-Scalability: S3 provides virtually unlimited storage capacity, allowing the index to scale with the growth of data.
+Scalability: S3 provides extensive storage capacity, allowing the index to scale with the growth of data.
 Fault Tolerance: S3 ensures high availability and durability of the index, minimizing the risk of data loss.
 Efficient Updates: Lambda enables efficient and timely updates to the index, ensuring that containers always operate with the latest data.
 Seamless Deployments: Green/Blue deployment strategy ensures zero downtime during updates, maintaining uninterrupted service availability.
-Conclusion:
+
 
 
 

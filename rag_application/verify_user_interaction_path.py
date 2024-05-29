@@ -73,6 +73,5 @@ class TestUiIntegration(unittest.TestCase):
 
         app = RAGApplication(products_file=self.temp_file_name)
         response = app.process_query(mock_query)
-        response = app.process_query(mock_query)
 
         self.assertEqual(response, mock_response)

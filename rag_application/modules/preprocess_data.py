@@ -21,7 +21,7 @@ class DataPreprocessor:
         data_dir = os.path.join(base_dir, 'shopping_queries_dataset')
         examples_file = os.path.join(data_dir, 'shopping_queries_dataset_examples.parquet')
         products_file = os.path.join(data_dir, 'shopping_queries_dataset_products.parquet')
-        sources_file = os.path.join(data_dir, 'shopping_queries_dataset_sources.parquet')
+        sources_file = os.path.join(data_dir, 'shopping_queries_dataset_sources.csv')
 
         # Load the dataset files
         self.examples_df = pd.read_parquet(examples_file)

@@ -1,7 +1,9 @@
 import os
+import time
+
 import pandas as pd
 import numpy as np
-from pyChatGPT import ChatGPT
+import transformers
 from transformers import AutoTokenizer, AutoModel
 import faiss
 from typing import Tuple, List
@@ -68,9 +70,13 @@ class VectorIndex:
         logging.info("Tokenizing...")
         print("Tokenizing...")
         tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
+
+        # Log transformers library version
+        logging.info(f"Transformers library version: {transformers.__version__}")
         logging.info("Creating model via AutoModel.from_pretrained('bert-base-uncased')...")
         print("Creating model via AutoModel.from_pretrained('bert-base-uncased')...")
         model = AutoModel.from_pretrained('bert-base-uncased')
+        logging.info("Completed creating model via AutoModel.from_pretrained('bert-base-uncased')...")
 
         total_batches = (len(texts) + self.batch_size - 1)
         for batch in range(0, len(texts), self.batch_size):
@@ -309,6 +315,22 @@ if __name__ == "__main__":
         base_dir = os.path.dirname(os.path.abspath(__file__))
         data_dir = os.path.join(base_dir, 'shopping_queries_dataset')
         products_file = os.path.join(data_dir, 'processed_products.parquet')
+
+        # Wait for the file to exist
+        max_retries = 10
+        wait_time = 5  # seconds
+
+        for attempt in range(max_retries):
+            if os.path.exists(products_file):
+                break
+            else:
+                logging.error(f"File {products_file} not found. Retrying in {wait_time} seconds...")
+                print(f"File {products_file} not found. Retrying in {wait_time} seconds...")
+                time.sleep(wait_time)
+        else:
+            logging.error(f"File {products_file} not found after {max_retries * wait_time} seconds.")
+            raise FileNotFoundError(f"File {products_file} not found after {max_retries * wait_time} seconds.")
+
         vector_index = VectorIndex(products_file, batch_size=32)
         vector_index.load_processed_products()
         vector_index.create_faiss_index()

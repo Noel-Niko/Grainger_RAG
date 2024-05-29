@@ -44,8 +44,15 @@ Conclusion:
 
 ![image](https://github.com/Noel-Niko/grainger_rag/assets/83922762/8a125cdb-e533-42a8-903c-8337132e9f86)
 
+
+
 LOCAL INSTALL AND RUN
+  - Download https://github.com/amazon-science/esci-data/blob/main/shopping_queries_dataset/shopping_queries_dataset_products.parquet
+      - Place it in BOTH:
+          - rag_application/modules/shopping_queries_dataset
+          - rag_application/test_shopping_queries_dataset
   - Run local_start.sh
+
   
 LOCAL UNIT TESTING:  
   Note: due to the use of conda to help manage library version compatibility, the packages to install are listed primarily in the start shell and only those requiring a pip install in requirements.txt To set up a local env 
@@ -54,6 +61,8 @@ LOCAL UNIT TESTING:
       - #conda install -y pytest==8.2.1  <<< testing pkg
       - #conda install -y Faker==25.2.0  <<< testing pkg
   4. In Pycharm system settings set your new conda env as the python interpreter.
+  5. Ensure you have downloaded and added shopping_queries_dataset_products.parquet as described above.
+
 
 
 

@@ -53,6 +53,7 @@ LOCAL INSTALL AND RUN
       - Place it in BOTH:
           - rag_application/modules/shopping_queries_dataset
           - rag_application/test_shopping_queries_dataset
+  - Update local_start.sh with your path: export PYTHONPATH="
   - Run local_start.sh
 
   

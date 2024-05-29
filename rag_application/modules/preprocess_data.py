@@ -1,5 +1,4 @@
 import pandas as pd
-from sklearn.feature_extraction.text import TfidfVectorizer
 import os
 import logging
 
@@ -16,10 +15,18 @@ class DataPreprocessor:
 
     def preprocess_data(self):
         logging.info("Starting data preprocessing...")
+
+        # Dynamically determine the base directory and construct the full path to each file
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        data_dir = os.path.join(base_dir, 'shopping_queries_dataset')
+        examples_file = os.path.join(data_dir, 'shopping_queries_dataset_examples.parquet')
+        products_file = os.path.join(data_dir, 'shopping_queries_dataset_products.parquet')
+        sources_file = os.path.join(data_dir, 'shopping_queries_dataset_sources.parquet')
+
         # Load the dataset files
-        self.examples_df = pd.read_parquet('shopping_queries_dataset/shopping_queries_dataset_examples.parquet')
-        self.products_df = pd.read_parquet('shopping_queries_dataset/shopping_queries_dataset_products.parquet')
-        self.sources_df = pd.read_csv('shopping_queries_dataset/shopping_queries_dataset_sources.csv')
+        self.examples_df = pd.read_parquet(examples_file)
+        self.products_df = pd.read_parquet(products_file)
+        self.sources_df = pd.read_csv(sources_file)
 
         logging.info("Loaded DataFrames shapes:")
         logging.info(f"Examples DataFrame shape: {self.examples_df.shape}")

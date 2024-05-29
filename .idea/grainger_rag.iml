@@ -7,7 +7,7 @@
       <sourceFolder url="file://$MODULE_DIR$/rag_application/modules/shopping_queries_dataset" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/rag_application/test_shopping_queries_dataset" isTestSource="false" />
     </content>
-    <orderEntry type="jdk" jdkName="myenv" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="rag_env" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="PyDocumentationSettings">

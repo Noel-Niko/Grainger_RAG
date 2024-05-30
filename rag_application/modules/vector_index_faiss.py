@@ -67,7 +67,15 @@ class VectorIndex:
         logging.info("Loading preprocessed products.")
         try:
             self.products_df = pd.read_parquet(self.products_file)
-            self.products_df.set_index('product_id', inplace=True)
+            # TODO: SETTING A STATIC ID FIELD. MAY NOT APPLY TO OTHER DF'S!!!
+            # Check if '__index_level_0__' column exists
+            if '__index_level_0__' in self.products_df.columns:
+                # Set '__index_level_0__' as index
+                self.products_df.set_index('__index_level_0__', inplace=True)
+            else:
+                print("Column '__index_level_0__' not found. Skipping creation of 'combined_text' column.")
+                logging.warning("Column '__index_level_0__' not found. Skipping creation of 'combined_text' column.")
+
             logging.info("Completed loading preprocessed products.")
             print("Completed loading preprocessed products.")
         except FileNotFoundError:

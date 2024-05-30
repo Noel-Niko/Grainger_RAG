@@ -17,7 +17,6 @@ class DataPreprocessor:
 
     def preprocess_data(self):
         logging.info("Starting data preprocessing...")
-
         # Dynamically determine the base directory and construct the full path to each file
         base_dir = os.path.dirname(os.path.abspath(__file__))
         data_dir = os.path.join(base_dir, 'shopping_queries_dataset')
@@ -41,11 +40,19 @@ class DataPreprocessor:
 
         try:
             # Data Cleaning
-            self.examples_df = self.examples_df.dropna().drop_duplicates()
-            # TODO: REDUCING THE SIZE OF THE FILE FOR INTEGRATION TESTING
-            self.products_df = self.products_df.dropna().drop_duplicates().sample(frac=0.001)
+            self.examples_df = self.examples_df.dropna(how='any', inplace=True)
+            # TODO: REDUCING THE SIZE OF THE FILE FOR INTEGRATION TESTING -->> .sample(frac=0.001)
+            self.products_df = self.products_df.drop_duplicates().sample(frac=0.001).dropna(how='any', inplace=True)
+            self.sources_df = self.sources_df.drop_duplicates().dropna(how='any', inplace=True)
 
-            self.sources_df = self.sources_df.dropna().drop_duplicates()
+            # Create mappings between product IDs and numeric indices because FAISS requires index values of type int.
+            logging.info("Creating numerical index column...")
+            print("Creating numerical index column...")
+            self.product_id_to_index = {pid: idx for idx, pid in enumerate(self.products_df['product_id'])}
+            self.index_to_product_id = {idx: pid for pid, idx in self.product_id_to_index.items()}
+            self.products_df['numeric_index'] = self.products_df['product_id'].map(self.product_id_to_index)
+            logging.info("Completed creating numerical index column...")
+            print("Completed creating numerical index column...")
 
             output_dir = 'shopping_queries_dataset'
             output_files = {
@@ -67,8 +74,7 @@ class DataPreprocessor:
                 else:
                     print(f"Saving file to {file_path}")
                     logging.info(f"Saving file to  {file_path}")
-                    # Overwrite any existing file
-                    df.to_parquet(file_path, mode='w')
+                    df.to_parquet(file_path)
 
             logging.info("Data preprocessing completed successfully.")
 

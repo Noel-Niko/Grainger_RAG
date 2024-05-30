@@ -30,7 +30,7 @@ def generate_random_product_data(num_samples=10000, searchable_keywords=['PRODUC
         combined_text[i] += f' {keyword}'
 
     product_data = pd.DataFrame({
-        'product_id': product_ids,
+        '__index_level_0__': product_ids,
         'product_title': product_titles,
         'product_description': product_descriptions,
         'product_bullet_point': product_bullet_points,

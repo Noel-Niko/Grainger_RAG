@@ -18,8 +18,6 @@ class DataPreprocessor:
         self.examples_df = None
         self.products_df = None
         self.sources_df = None
-        # self.product_id_to_index = {}
-        # self.index_to_product_id = {}
         self.preprocessing_complete = False
 
     def normalize_text(self, text):

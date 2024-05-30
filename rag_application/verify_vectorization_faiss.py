@@ -1,13 +1,16 @@
 import os
+import random
 import tempfile
 import unittest
+import random
+import string
+from unittest.mock import MagicMock
+
 import numpy as np
 import pandas as pd
-from rag_application.modules.vector_index_faiss import VectorIndex
 from faker import Faker
-import random
-from typing import Tuple
-import string
+
+from rag_application.modules.vector_index_faiss import VectorIndex
 
 fake = Faker()
 searchable_terms = ['APPLE', 'hammer']
@@ -73,7 +76,7 @@ class TestVectorIndex(unittest.TestCase):
 
     def setUp(self):
         """Set up the test environment."""
-        # Generate dummy product data
+        # ********  Generate dummy product data  ********
         dummy_product_data_untrained = generate_random_product_data(num_samples=1000,
                                                                     searchable_keywords=searchable_terms)
         dummy_product_data_trained = dummy_product_data_untrained.dropna().drop_duplicates()
@@ -84,12 +87,20 @@ class TestVectorIndex(unittest.TestCase):
             self.vector_index = VectorIndex(products_file=temp_file.name, nlist=100, m=16, batch_size=16)
             self.temp_file_name = temp_file.name
 
+        # ********  Generate from a created pickle file ********
+        # Specify the pickle file path
+        # vector_index_path = 'vector_index.pkl'
+        # with open(vector_index_path, 'rb') as file:
+        #     print("Loading vector index...from pickle file.")
+        #     self.vector_index = pickle.load(file)
+        #
+        # self.assertIsNotNone(self.vector_index, "Failed to load VectorIndex instance from pickle file.")
+
     def tearDown(self):
         """Clean up resources after each test."""
         del self.vector_index
         if hasattr(self, 'test_vectors'):
             del self.test_vectors
-        os.unlink(self.temp_file_name)
 
     def set_up_data(self):
         # Verify that the VectorIndex instance has been properly initialized
@@ -145,6 +156,67 @@ class TestVectorIndex(unittest.TestCase):
         for pid in product_ids.tolist()[0]:
             self.assertIsInstance(pid, (int, str), "Product ID is not an integer or string.")
 
+    # Test with Known Queries
+    def test_search(self):
+        """
+        Test the search functionality with known queries.
+        """
+        known_queries = ["red shirt", "blue dress", "green shoes"]
+        for query in known_queries:
+            distances, indices = self.search_index(query)
+            print(f"Query: {query}")
+            print("Nearest Neighbors:")
+            for dist, idx in zip(distances[0], indices[0]):
+                print(f"Distance: {dist}, Index: {idx}")
+            print()
+    def test_search_and_generate_response(self):
+        """Test search_and_generate_response method."""
+        # Set up data
+        self.vector_index.load_processed_products()
+        self.vector_index.create_faiss_index()
+
+        # Define a refined query
+        refined_query = "sample query"
+
+        # Call the method
+        response = self.vector_index.search_and_generate_response(refined_query, llm=None, k=5)
+
+        # Check the response
+        self.assertIsInstance(response, str, "Response is not a string.")
+        self.assertGreater(len(response), 0, "Response is empty.")
+
+    # @patch.object(VectorIndex, 'search_index')
+    # @patch.object(VectorIndex, 'products_df', new_callable=pd.DataFrame)
+    # def test_search_and_generate_response(self, mock_products_df, mock_search_index):
+    #     # Setup
+    #     vector_index_instance = VectorIndex()
+    #
+    #     # Mock the search_index method to return predefined distances and indices
+    #     mock_search_index.return_value = (np.array([[0.1, 0.2, 0.3]]), np.array([[1, 2, 3]]))
+    #
+    #     # Mock the products_df DataFrame
+    #     mock_products_df.return_value = pd.DataFrame({
+    #         'numeric_index': [1, 2, 3],
+    #         'product_title': ['Title1', 'Title2', 'Title3'],
+    #         'product_description': ['Desc1', 'Desc2', 'Desc3'],
+    #         'product_bullet_point': ['Bullet1', 'Bullet2', 'Bullet3'],
+    #         'product_brand': ['Brand1', 'Brand2', 'Brand3'],
+    #         'product_color': ['Color1', 'Color2', 'Color3'],
+    #         'product_locale': ['Locale1', 'Locale2', 'Locale3']
+    #     })
+    #
+    #     # Call the method under test
+    #     refined_query = "example query"
+    #     llm = MagicMock()
+    #     response = vector_index_instance.search_and_generate_response(refined_query, llm, k=3)
+    #
+    #     # Assertions
+    #     expected_response = "ID: 1, Name: Title1, Description: Desc1, Key Facts: Bullet1, Brand: Brand1, Color: Color1, Location: Locale1, ID: 2, Name: Title2, Description: Desc2, Key Facts: Bullet2, Brand: Brand2, Color: Color2, Location: Locale2, ID: 3, Name: Title3, Description: Desc3, Key Facts: Bullet3, Brand: Brand3, Color: Color3, Location: Locale3"
+    #     self.assertEqual(response, expected_response)
+    #
+    #     # Verify that search_index was called with the correct parameters
+    #     mock_search_index.assert_called_once_with(refined_query, k=3)
+
     def test_empty_query_vector(self):
         """Test searching with an empty query vector."""
         self.set_up_data()
@@ -174,7 +246,8 @@ class TestVectorIndex(unittest.TestCase):
             new_descriptions[product_id] = f"Updated description for product {product_id}"
 
         # Test identifying the changed vectors.
-        changed_product_ids = self.vector_index.find_changed_products(first_10_vectors.set_index('product_id')['product_description'], new_descriptions)
+        changed_product_ids = self.vector_index.find_changed_products(
+            first_10_vectors.set_index('product_id')['product_description'], new_descriptions)
 
         expected_changed_product_ids = set(selected_product_ids)
         self.assertEqual(changed_product_ids, expected_changed_product_ids, "Incorrect product IDs identified as "
@@ -189,7 +262,8 @@ class TestVectorIndex(unittest.TestCase):
         selected_product_ids = random.sample(all_product_ids, k=3)
 
         # Create new descriptions for these products.
-        new_descriptions = {product_id: f"Updated description for product {product_id}" for product_id in selected_product_ids}
+        new_descriptions = {product_id: f"Updated description for product {product_id}" for product_id in
+                            selected_product_ids}
 
         self.vector_index.update_product_descriptions(new_descriptions)
 
@@ -198,7 +272,7 @@ class TestVectorIndex(unittest.TestCase):
             updated_row = self.vector_index.products_df.loc[self.vector_index.products_df['product_id'] == product_id]
             self.assertEqual(updated_row.iloc[0]['product_description'], new_description)
             self.assertEqual(updated_row.iloc[0]['combined_text'],
-                            f"{updated_row.iloc[0]['product_title']} {new_description}")
+                             f"{updated_row.iloc[0]['product_title']} {new_description}")
 
         # TODO: Verify that the embeddings for the updated products have been regenerated correctly.
         # for product_id, _ in new_descriptions.items():

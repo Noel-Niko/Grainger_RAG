@@ -334,7 +334,7 @@ class VectorIndex:
         """Returns the first 10 vectors in the index dataframe. Used for testing."""
         return self.products_df.head(10)
 
-    def search_and_generate_response(self, refined_query: str, llm, k: int = 5) -> str:
+    def search_and_generate_response(self, refined_query: str, llm, k: int = 15) -> str:
         # Search the FAISS index with the refined query
         logging.info(f"Searching the index for: {refined_query}")
         distances, relevant_product_indices = self.search_index(refined_query, k=k)

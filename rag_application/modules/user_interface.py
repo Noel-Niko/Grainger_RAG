@@ -1,3 +1,4 @@
+import logging
 import os
 import streamlit as st
 from rag_application.modules.vector_index_faiss import VectorIndex
@@ -8,13 +9,29 @@ from langchain.chains.combine_documents import create_stuff_documents_chain
 
 
 class RAGApplication:
-    def __init__(self, products_file):
-        self.products_file = products_file
-        self.vector_index = VectorIndex.getInstance(products_file=self.products_file)
+    def __init__(self, vector_index_instance=None):
+        self.vector_index = vector_index_instance
         self.llm_connection = ChatOpenAI(api_key=chatOpenAiKey)
         self.current_query = None
 
+    # Persist the state to prevent recreating the index
+    def get_vector_index(self):
+        """Get or create the VectorIndex instance."""
+        if 'vector_index' not in st.session_state:
+            logging.info("Creating VectorIndex instance")
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            data_dir = os.path.join(base_dir, 'shopping_queries_dataset')
+            products_file = os.path.join(data_dir, 'processed_products.parquet')
+            logging.info(f"Getting products file at {products_file}")
+            self.vector_index = VectorIndex.getInstance(products_file=products_file)
+            st.session_state['vector_index'] = self.vector_index
+            logging.info("VectorIndex instance created with session state.")
+        else:
+            logging.info("VectorIndex already exists")
+            self.vector_index = st.session_state['vector_index']
+
     def main(self):
+        self.get_vector_index()
         st.title("Relevance-Aware Generation (RAG) Application")
         query = st.text_input("Enter your product-based question:")
         if st.button("Submit"):
@@ -41,8 +58,5 @@ class RAGApplication:
 
 
 if __name__ == "__main__":
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    data_dir = os.path.join(base_dir, 'shopping_queries_dataset')
-    products_file = os.path.join(data_dir, 'processed_products.parquet')
-    app = RAGApplication(products_file)
+    app = RAGApplication()
     app.main()

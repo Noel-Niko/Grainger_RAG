@@ -7,7 +7,7 @@ from transformers import AutoTokenizer, AutoModel
 import faiss
 from typing import Tuple, List
 import logging
-from rag_application.modules.preprocess_data import DataPreprocessor
+from preprocess_data import DataPreprocessor
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -27,10 +27,6 @@ class VectorIndex:
     def getInstance(cls, **kwargs):
         """Static access method to get the singleton instance, enforcing required arguments."""
         if cls._instance is None:
-            preprocessor = DataPreprocessor()
-            preprocessor.preprocess_data()
-            while not preprocessor.is_preprocessing_complete():
-                time.sleep(1)
             # Safely retrieve 'products_file' from kwargs, providing a default value if not found
             products_file = kwargs.get('products_file', '')
 
@@ -109,6 +105,13 @@ class VectorIndex:
                 inputs = tokenizer(batch_texts, return_tensors="pt", padding=True, truncation=True, max_length=512)
                 outputs = model(**inputs)
                 batch_embeddings = outputs.last_hidden_state[:, 0, :].detach().numpy()
+
+                # Dimensionality check
+                expected_dim = 768  # BERT-base embeddings have 768 dimensions
+                if batch_embeddings.ndim != 2 or batch_embeddings.shape[1] != expected_dim:
+                    raise ValueError(
+                        f"Inconsistent embedding dimensions. Expected {expected_dim}, got {batch_embeddings.shape[1]}")
+
                 embeddings.extend(batch_embeddings)
                 print(f"Finished encoding text batch {batch} of {total_batches}.")
             except Exception as e:
@@ -125,6 +128,8 @@ class VectorIndex:
         embeddings = self.encode_text_to_embedding(combined_texts)
         expected_dim = 768  # Example: BERT base model has 768 dimensions
         if embeddings.ndim != 2 or embeddings.shape[1] != expected_dim:
+            print(f"Inconsistent embedding dimensions. Expected {expected_dim}, got {embeddings.shape[1]}")
+            logging.error(f"Inconsistent embedding dimensions. Expected {expected_dim}, got {embeddings.shape[1]}")
             raise ValueError(
                 f"Inconsistent embedding dimensions. Expected {expected_dim}, got {embeddings.shape[1]}")
 
@@ -140,13 +145,18 @@ class VectorIndex:
         # Ensure embeddings is a numpy array
         embeddings_np = np.array(embeddings)
 
+        # Generate numeric IDs for FAISS
+        numeric_ids = np.arange(len(self.products_df)).astype(np.int64)
+
         # Train the index and add embeddings
         logging.info("Training...")
         print("Training...")
         self._index.train(embeddings_np)
         logging.info("Embedding...")
         print("Embedding...")
-        self._index.add_with_ids(embeddings_np, self.products_df.index.values.astype(np.int64))
+        self._index.add_with_ids(embeddings_np, numeric_ids)
+        logging.info("Embedding completed.")
+        print("Embedding completed.")
         self._is_index_created = True
 
     def search_index(self, query: str, k: int = 10) -> Tuple[np.ndarray, np.ndarray]:
@@ -371,13 +381,20 @@ class VectorIndex:
 
 if __name__ == "__main__":
     try:
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        data_dir = os.path.join(base_dir, 'shopping_queries_dataset')
-        products_file = os.path.join(data_dir, 'processed_products.parquet')
-
+        preprocessor = DataPreprocessor()
+        logging.info("Vector Index Faiss initializing data preprocessing")
+        preprocessor.preprocess_data()
+        logging.info("Vector Index Faiss initialized data preprocessing completed.")
+        while not preprocessor.is_preprocessing_complete():
+            logging.info("Waiting for file generation.")
+            time.sleep(1)
         # Wait for the file to exist
         max_retries = 10
         wait_time = 5  # seconds
+
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        data_dir = os.path.join(base_dir, 'shopping_queries_dataset')
+        products_file = os.path.join(data_dir, 'processed_products.parquet')
 
         for attempt in range(max_retries):
             if os.path.exists(products_file):

@@ -1,6 +1,12 @@
+import re
+
 import pandas as pd
 import os
 import logging
+import nltk
+from nltk.corpus import stopwords
+nltk.download('stopwords')
+nltk.download('punkt')
 
 # Configure logging
 logging.basicConfig(level=logging.INFO,
@@ -12,9 +18,22 @@ class DataPreprocessor:
         self.examples_df = None
         self.products_df = None
         self.sources_df = None
-        self.product_id_to_index = {}
-        self.index_to_product_id = {}
+        # self.product_id_to_index = {}
+        # self.index_to_product_id = {}
         self.preprocessing_complete = False
+
+    def normalize_text(self, text):
+        logging.info("Normalizing text")
+        if isinstance(text, str):
+            text = text.lower()
+            tokens = nltk.word_tokenize(text)
+            stop_words = set(stopwords.words('english'))
+            filtered_tokens = [token for token in tokens if token not in stop_words]
+            normalized_text = ' '.join(filtered_tokens)
+            return normalized_text
+        else:
+            logging.error("Expected a string while normalizing text.")
+            raise ValueError("Expected a string")
 
     def preprocess_data(self):
         logging.info("Starting data preprocessing...")
@@ -41,42 +60,20 @@ class DataPreprocessor:
 
         try:
             # Data Cleaning
-            self.examples_df = self.examples_df.drop_duplicates()
-            # TODO: REDUCING THE SIZE OF THE FILE FOR INTEGRATION TESTING -->> .sample(frac=0.001)
-            self.products_df = self.products_df.drop_duplicates().sample(frac=0.001)
-            self.sources_df = self.sources_df.drop_duplicates()
+            self.examples_df = self.examples_df.dropna().drop_duplicates()
+            # TODO: REDUCING THE SIZE OF THE FILE FOR INTEGRATION TESTING
+            self.products_df = self.products_df.dropna().drop_duplicates().sample(frac=0.001)
 
-            # Ensure product_id is not null or empty
-            if self.products_df is None or self.products_df.empty:
-                logging.warning("Products DataFrame is None or empty. Skipping further processing.")
-                return
-
-            # Ensure product_id is not null or empty and remove empty and duplicated rows
-            temp_df = self.products_df.dropna(how='all').drop_duplicates()
-            temp_df = temp_df[temp_df['product_id'].notnull()]
-
-            # Create mappings between product IDs and numeric indices because FAISS requires index values of type int.
-            logging.info("Creating numerical index column...")
-            print("Creating numerical index column...")
-
-            if 'numeric_index' not in temp_df.columns:
-                temp_df['numeric_index'] = None
-            unique_ids = {}
-            for idx, pid in enumerate(temp_df['product_id']):
-                if pid not in unique_ids:
-                    unique_ids[pid] = idx
-
-            temp_df['numeric_index'] = temp_df['product_id'].map(unique_ids).astype(int)
+            self.sources_df = self.sources_df.dropna().drop_duplicates()
 
             # Feature Extraction
-            temp_df['combined_text'] = temp_df['product_title'] + " " + temp_df['product_description']
-
-            self.products_df = temp_df
-
-            logging.info("Completed creating numerical index column...")
-            print("Completed creating numerical index column...")
-
-            output_dir = 'shopping_queries_dataset'
+            self.products_df['combined_text'] = (self.products_df['product_title']
+                                                 + " " + self.products_df['product_description']
+                                                 + " " + self.products_df['product_bullet_point'])
+            # Normalize combined_text
+            self.products_df['combined_text'] = self.products_df['combined_text'].apply(self.normalize_text)
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            output_dir = os.path.join(base_dir, 'shopping_queries_dataset')
             output_files = {
                 'examples': 'processed_examples.parquet',
                 'products': 'processed_products.parquet',
@@ -89,6 +86,13 @@ class DataPreprocessor:
             for df_name, file_name in output_files.items():
                 df = getattr(self, f'{df_name}_df')
                 file_path = os.path.join(output_dir, file_name)
+
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+                    print(f"The file {file_path} has been deleted.")
+                else:
+                    print(f"The file {file_path} does not exist.")
+
                 if df_name == 'sources':
                     print(f"Saving file to {file_path}")
                     logging.info(f"Saving file to {file_path}")

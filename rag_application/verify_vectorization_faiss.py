@@ -30,7 +30,7 @@ def generate_random_product_data(num_samples=10000, searchable_keywords=['PRODUC
         combined_text[i] += f' {keyword}'
 
     product_data = pd.DataFrame({
-        '__index_level_0__': product_ids,
+        'product_id': product_ids,
         'product_title': product_titles,
         'product_description': product_descriptions,
         'product_bullet_point': product_bullet_points,
@@ -134,8 +134,6 @@ class TestVectorIndex(unittest.TestCase):
 
         # Ensure distances is a numpy array
         self.assertIsInstance(distances, np.ndarray, "Distances are not a numpy array.")
-        distances_list = distances.tolist()
-        distance_list = len(distances_list)
         self.assertEqual(5, len(distances.tolist()[0]), "Number of distances does not match k.")
 
         # Ensure product_ids is a list

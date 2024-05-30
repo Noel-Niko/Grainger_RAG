@@ -44,7 +44,7 @@ echo "*********************************************************faiss-cpu version
 python -c "import faiss; print(faiss.__version__)"
 
 # Run the preprocessing script
-python  modules/preprocess_data.py || { echo "Preprocessing failed"; exit 1; }
+python  rag_application/modules/preprocess_data.py || { echo "Preprocessing failed"; exit 1; }
 
 
 #TODO: for running locally only:
@@ -60,7 +60,7 @@ for port in "${port_range[@]}"; do
     python -c "import socket; s = socket.socket(socket.AF_INET, socket.SOCK_STREAM); s.bind(('localhost', $port)); s.close(); print('Port $port is available')" > /dev/null 2>&1
     if [ $? -eq 0 ]; then
         # Port is available, start Streamlit with this port
-        exec streamlit run modules/user_interface.py --server.port=$port --server.address=0.0.0.0 || { echo "Streamlit failed to start"; exit 1; }
+        exec streamlit run rag_application/modules/user_interface.py --server.port=$port --server.address=0.0.0.0 || { echo "Streamlit failed to start"; exit 1; }
         break
     fi
 done

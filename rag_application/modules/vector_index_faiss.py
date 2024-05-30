@@ -1,6 +1,5 @@
 import os
 import time
-
 import pandas as pd
 import numpy as np
 import transformers
@@ -8,6 +7,7 @@ from transformers import AutoTokenizer, AutoModel
 import faiss
 from typing import Tuple, List
 import logging
+from rag_application.modules.preprocess_data import DataPreprocessor
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -27,6 +27,10 @@ class VectorIndex:
     def getInstance(cls, **kwargs):
         """Static access method to get the singleton instance, enforcing required arguments."""
         if cls._instance is None:
+            preprocessor = DataPreprocessor()
+            preprocessor.preprocess_data()
+            while not preprocessor.is_preprocessing_complete():
+                time.sleep(1)
             # Safely retrieve 'products_file' from kwargs, providing a default value if not found
             products_file = kwargs.get('products_file', '')
 
@@ -45,6 +49,7 @@ class VectorIndex:
                 print("Instance of VectorIndex created. Initializing the instance of VectorIndex...")
                 logging.info("Instance of VectorIndex created. Initializing the instance of VectorIndex...")
                 cls._instance.load_processed_products()
+
                 cls._instance.create_faiss_index()
             except Exception as e:
                 logging.error(f"Failed to initialize the FAISS index: {str(e)}")
@@ -68,15 +73,7 @@ class VectorIndex:
         logging.info("Loading preprocessed products.")
         try:
             self.products_df = pd.read_parquet(self.products_file)
-            # TODO: SETTING A STATIC ID FIELD. MAY NOT APPLY TO OTHER DF'S!!!
-            # Check if '__index_level_0__' column exists
-            if '__index_level_0__' in self.products_df.columns:
-                # Set '__index_level_0__' as index
-                self.products_df.set_index('__index_level_0__', inplace=True)
-            else:
-                print("Column '__index_level_0__' not found. Skipping creation of 'combined_text' column.")
-                logging.warning("Column '__index_level_0__' not found. Skipping creation of 'combined_text' column.")
-
+            self.products_df.set_index('product_id', inplace=True)
             logging.info("Completed loading preprocessed products.")
             print("Completed loading preprocessed products.")
         except FileNotFoundError:
@@ -335,7 +332,7 @@ class VectorIndex:
         for index in relevant_product_indices:
             pid = None
             try:
-                pid = self.products_df.iloc[index]['__index_level_0__']
+                pid = self.products_df.iloc[index]['numeric_index']
                 product_info = (
                     f"ID: {index}, "
                     f"Name: {self.products_df.loc[pid, 'product_title']}, "

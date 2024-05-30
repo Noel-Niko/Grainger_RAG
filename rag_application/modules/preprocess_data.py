@@ -67,6 +67,10 @@ class DataPreprocessor:
                     unique_ids[pid] = idx
 
             temp_df['numeric_index'] = temp_df['product_id'].map(unique_ids).astype(int)
+
+            # Feature Extraction
+            temp_df['combined_text'] = temp_df['product_title'] + " " + temp_df['product_description']
+
             self.products_df = temp_df
 
             logging.info("Completed creating numerical index column...")
@@ -105,12 +109,10 @@ class DataPreprocessor:
             return
 
         # Improves search speed. Note: watch memory implications over time.
-        # Removed as we are not retrieving description my product_id for this use case.
-        # product_mappings = {}
-        # for _, row in self.products_df.iterrows():
-        #     product_id = row['product_id']
-        #     product_mappings[product_id] = (row['product_title'], row['product_description'])
-
+        product_mappings = {}
+        for _, row in self.products_df.iterrows():
+            product_id = row['product_id']
+            product_mappings[product_id] = (row['product_title'], row['product_description'])
         logging.info("Data preprocessing completed successfully.")
         print("Data preprocessing completed successfully.")
         self.preprocessing_complete = True

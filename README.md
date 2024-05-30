@@ -60,6 +60,8 @@ LOCAL INSTALL AND RUN
   - The size of the products_df data frame has been reduced for speed of processing for test and demo. It can be returned to full size in preprocess_data.py line 44 under  # Data Cleaning
   - Run local_start.sh
 
+    NOTE: Pickle, Singleton design pattern, and streamlit state annotation are used so that while the program is running the creation of the initial faiss index is persisted and reused to prevent the need to recreate. Updates can be made to that existing index through the methods included and the pickle file replace with the updated version.
+
   
 LOCAL UNIT TESTING  
   Note: Due to the use of conda to help manage library version compatibility, the packages to install are listed primarily in the start shell and only those requiring a pip install in requirements.txt To set up a local env 

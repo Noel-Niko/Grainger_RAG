@@ -134,8 +134,6 @@ class TestVectorIndex(unittest.TestCase):
 
         # Ensure distances is a numpy array
         self.assertIsInstance(distances, np.ndarray, "Distances are not a numpy array.")
-        distances_list = distances.tolist()
-        distance_list = len(distances_list)
         self.assertEqual(5, len(distances.tolist()[0]), "Number of distances does not match k.")
 
         # Ensure product_ids is a list

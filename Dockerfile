@@ -1,7 +1,7 @@
 # Use a Debian-based Python image
 FROM python:3.9
 
-SHELL ["/bin/bash", "-c"]
+SHELL ["/bin/bash", "--login", "-c"]
 
 WORKDIR /app
 
@@ -61,9 +61,6 @@ EXPOSE 8505
 
 # Make the script executable
 RUN chmod +x /app/start.sh
-
-# Use the Conda environment to run the script
-#CMD ["bash", "-c", "source /opt/conda/etc/profile.d/conda.sh && conda activate ragEnv && ./start.sh"]
 
 # Use the Conda environment to run the script
 CMD ["bash", "-c", "source /opt/conda/etc/profile.d/conda.sh && conda activate ragEnv && ./start.sh"]

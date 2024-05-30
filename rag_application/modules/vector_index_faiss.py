@@ -1,6 +1,6 @@
 import os
+import pickle
 import time
-
 import pandas as pd
 import numpy as np
 import transformers
@@ -8,6 +8,7 @@ from transformers import AutoTokenizer, AutoModel
 import faiss
 from typing import Tuple, List
 import logging
+from preprocess_data import DataPreprocessor
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -21,22 +22,41 @@ class VectorIndex:
     _instance = None
     _index = None
     _products_df = None
+    _is_index_created = False
 
     @classmethod
-    def getInstance(cls, **kwargs):
+    def get_instance(cls, **kwargs):
         """Static access method to get the singleton instance, enforcing required arguments."""
         if cls._instance is None:
-            # Safely retrieve 'products_file' from kwargs, providing a default value if not found
+            logging.info("Loading vector from pickle file...")
+            pickle_file = kwargs.get('pickle_file', 'vector_index.pkl')
             products_file = kwargs.get('products_file', '')
 
             # Check if 'products_file' is a string
             if not isinstance(products_file, str):
+                print("'products_file' argument must be a string")
+                logging.error("'products_file' argument must be a string")
                 raise TypeError("'products_file' argument must be a string")
 
-            # Proceed with instantiation if 'products_file' is valid
-            cls._instance = cls(products_file=products_file)
-
-        return cls._instance
+            if os.path.exists(pickle_file):
+                logging.info(f"Loading VectorIndex instance from {pickle_file}")
+                with open(pickle_file, 'rb') as file:
+                    cls._instance = pickle.load(file)
+                logging.info("VectorIndex instance loaded from pickle file.")
+            else:
+                logging.info("Creating new instance of VectorIndex...")
+                cls._instance = cls(products_file=products_file)
+                try:
+                    cls._instance.verify_or_wait_for_file_creation()
+                    cls._instance.load_processed_products()
+                    cls._instance.create_faiss_index()
+                    with open(pickle_file, 'wb') as file:
+                        pickle.dump(cls._instance, file)
+                    logging.info("VectorIndex instance created and serialized to pickle file.")
+                except Exception as e:
+                    logging.error(f"Failed to initialize the FAISS index: {str(e)}")
+                    raise RuntimeError(f"Error initializing the FAISS index: {str(e)}")
+            return cls._instance
 
     def __init__(self, products_file=None, nlist=100, m=16, batch_size=32):
         self.llm = None
@@ -45,14 +65,17 @@ class VectorIndex:
         self.m = m
         self.batch_size = batch_size
         self.embeddings_dict = {}
+        self.data_preprocessor = DataPreprocessor()
         print("VectorIndex instance created.")
         logging.info("VectorIndex instance created.")
 
     def load_processed_products(self):
         """Loads the processed products data with error handling."""
         print("Loading preprocessed products.")
+        logging.info("Loading preprocessed products.")
         try:
             self.products_df = pd.read_parquet(self.products_file)
+            self.products_df.set_index('product_id', inplace=True)
             logging.info("Completed loading preprocessed products.")
             print("Completed loading preprocessed products.")
         except FileNotFoundError:
@@ -88,6 +111,13 @@ class VectorIndex:
                 inputs = tokenizer(batch_texts, return_tensors="pt", padding=True, truncation=True, max_length=512)
                 outputs = model(**inputs)
                 batch_embeddings = outputs.last_hidden_state[:, 0, :].detach().numpy()
+
+                # Dimensionality check
+                expected_dim = 768  # BERT-base embeddings have 768 dimensions
+                if batch_embeddings.ndim != 2 or batch_embeddings.shape[1] != expected_dim:
+                    raise ValueError(
+                        f"Inconsistent embedding dimensions. Expected {expected_dim}, got {batch_embeddings.shape[1]}")
+
                 embeddings.extend(batch_embeddings)
                 print(f"Finished encoding text batch {batch} of {total_batches}.")
             except Exception as e:
@@ -104,12 +134,15 @@ class VectorIndex:
         embeddings = self.encode_text_to_embedding(combined_texts)
         expected_dim = 768  # Example: BERT base model has 768 dimensions
         if embeddings.ndim != 2 or embeddings.shape[1] != expected_dim:
+            print(f"Inconsistent embedding dimensions. Expected {expected_dim}, got {embeddings.shape[1]}")
+            logging.error(f"Inconsistent embedding dimensions. Expected {expected_dim}, got {embeddings.shape[1]}")
             raise ValueError(
                 f"Inconsistent embedding dimensions. Expected {expected_dim}, got {embeddings.shape[1]}")
 
         d = embeddings.shape[1]  # Dimensionality of the embeddings
 
-        # Create the quantizer and index
+        # Create the quantizer and index. Chose IndexFlatL2 over the possible better
+        # IVFPQ due to availability of documentation
         logging.info("Creating quantizer")
         print("Creating quantizer")
         quantizer = faiss.IndexFlatL2(d)
@@ -118,18 +151,23 @@ class VectorIndex:
         # Ensure embeddings is a numpy array
         embeddings_np = np.array(embeddings)
 
+        # Generate numeric IDs for FAISS
+        numeric_ids = np.arange(len(self.products_df)).astype(np.int64)
+
         # Train the index and add embeddings
         logging.info("Training...")
         print("Training...")
         self._index.train(embeddings_np)
         logging.info("Embedding...")
         print("Embedding...")
-        self._index.add(embeddings_np)
+        self._index.add_with_ids(embeddings_np, numeric_ids)
+        logging.info("Embedding completed.")
+        print("Embedding completed.")
+        self._is_index_created = True
 
     def search_index(self, query: str, k: int = 10) -> Tuple[np.ndarray, np.ndarray]:
         """
         Searches for the k nearest neighbors of the query.
-
         :param query: The text query to search for.
         :param k: Number of nearest neighbors to return.
         :return: A tuple containing distances and indices of the nearest neighbors.
@@ -176,7 +214,8 @@ class VectorIndex:
 
         return distance, result_index
 
-    def find_changed_products(self, old_descriptions, new_descriptions):
+    @staticmethod
+    def find_changed_products(old_descriptions, new_descriptions):
         """
         Identifies products whose descriptions have changed.
 
@@ -295,45 +334,85 @@ class VectorIndex:
         return self.products_df.head(10)
 
     def search_and_generate_response(self, refined_query: str, llm, k: int = 5) -> str:
-        _, relevant_product_indices = self.search_index(refined_query, k=k)
-        product_info = ", ".join(
-            [f"ID: {pid}, "
-             f"Name: {self.products_df.loc[pid, 'product_title']}, "
-             f"Description: {self.products_df.loc[pid, 'product_description']},"
-             f"Key Facts: {self.products_df.loc[pid, 'product_bullet_point']},"
-             f"Brand: {self.products_df.loc[pid, 'product_brand']},"
-             f"Color: {self.products_df.loc[pid, 'product_color']},"
-             f"Location: {self.products_df.loc[pid, 'product_locale']},"
-             for pid in relevant_product_indices]
-        )
-        logging.info(f"From search_and_generate_response returning: {product_info}")
-        return product_info
+        # Search the FAISS index with the refined query
+        logging.info(f"Searching the index for: {refined_query}")
+        distances, relevant_product_indices = self.search_index(refined_query, k=k)
 
+        # Check the type and shape of relevant_product_indices
+        print(f"Type of relevant_product_indices: {type(relevant_product_indices)}")
+        print(f"Shape of relevant_product_indices: {relevant_product_indices.shape}")
+        logging.info(f"Type of relevant_product_indices: {type(relevant_product_indices)}")
+        logging.info(f"Shape of relevant_product_indices: {relevant_product_indices.shape}")
 
-if __name__ == "__main__":
-    try:
+        # Extract the product information based on the returned indices
+        product_info_list = []
+        for index in relevant_product_indices:
+            pid = None
+            try:
+                pid = self.products_df.iloc[index]['numeric_index']
+                product_info = (
+                    f"ID: {index}, "
+                    f"Name: {self.products_df.loc[pid, 'product_title']}, "
+                    f"Description: {self.products_df.loc[pid, 'product_description']}, "
+                    f"Key Facts: {self.products_df.loc[pid, 'product_bullet_point']}, "
+                    f"Brand: {self.products_df.loc[pid, 'product_brand']}, "
+                    f"Color: {self.products_df.loc[pid, 'product_color']}, "
+                    f"Location: {self.products_df.loc[pid, 'product_locale']}"
+                )
+                product_info_list.append(product_info)
+            except KeyError:
+                logging.warning(f"Product ID {pid} not found in the DataFrame.")
+
+        # Join the product information into a single string
+        product_info_str = ", ".join(product_info_list)
+        logging.info(f"From search_and_generate_response returning: {product_info_str}")
+
+        return product_info_str
+
+    @classmethod
+    def verify_or_wait_for_file_creation(cls):
+        logging.info("Waiting for file generation.")
+
+        # Define the path to the file
         base_dir = os.path.dirname(os.path.abspath(__file__))
         data_dir = os.path.join(base_dir, 'shopping_queries_dataset')
         products_file = os.path.join(data_dir, 'processed_products.parquet')
 
-        # Wait for the file to exist
+        # Parameters for retrying
         max_retries = 10
         wait_time = 5  # seconds
 
         for attempt in range(max_retries):
             if os.path.exists(products_file):
+                logging.info(f"File {products_file} found.")
                 break
             else:
-                logging.error(f"File {products_file} not found. Retrying in {wait_time} seconds...")
-                print(f"File {products_file} not found. Retrying in {wait_time} seconds...")
+                logging.warning(f"File {products_file} not found. Retrying in {wait_time} seconds...")
                 time.sleep(wait_time)
         else:
             logging.error(f"File {products_file} not found after {max_retries * wait_time} seconds.")
             raise FileNotFoundError(f"File {products_file} not found after {max_retries * wait_time} seconds.")
 
-        vector_index = VectorIndex(products_file, batch_size=32)
-        vector_index.load_processed_products()
-        vector_index.create_faiss_index()
+
+# def search_and_generate_response(self, refined_query: str, llm, k: int = 5) -> str:
+    #     _, relevant_product_indices = self.search_index(refined_query, k=k)
+    #     product_info = ", ".join(
+    #         [f"ID: {pid}, "
+    #          f"Name: {self.products_df.loc[pid, 'product_title']}, "
+    #          f"Description: {self.products_df.loc[pid, 'product_description']},"
+    #          f"Key Facts: {self.products_df.loc[pid, 'product_bullet_point']},"
+    #          f"Brand: {self.products_df.loc[pid, 'product_brand']},"
+    #          f"Color: {self.products_df.loc[pid, 'product_color']},"
+    #          f"Location: {self.products_df.loc[pid, 'product_locale']},"
+    #          for pid in relevant_product_indices]
+    #         # for pid in relevant_product_indices[0]]
+    #     )
+    #     logging.info(f"From search_and_generate_response returning: {product_info}")
+    #     return product_info
+
+if __name__ == "__main__":
+    try:
+        VectorIndex.get_instance()
     except Exception as e:
         logging.error(f"Error creating the FAISS index: {e}")
         raise RuntimeError(f"Error creating the FAISS index: {e}")

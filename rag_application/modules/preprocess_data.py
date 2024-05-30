@@ -1,6 +1,12 @@
+import re
+
 import pandas as pd
 import os
 import logging
+import nltk
+from nltk.corpus import stopwords
+nltk.download('stopwords')
+nltk.download('punkt')
 
 # Configure logging
 logging.basicConfig(level=logging.INFO,
@@ -12,10 +18,25 @@ class DataPreprocessor:
         self.examples_df = None
         self.products_df = None
         self.sources_df = None
+        # self.product_id_to_index = {}
+        # self.index_to_product_id = {}
+        self.preprocessing_complete = False
+
+    def normalize_text(self, text):
+        logging.info("Normalizing text")
+        if isinstance(text, str):
+            text = text.lower()
+            tokens = nltk.word_tokenize(text)
+            stop_words = set(stopwords.words('english'))
+            filtered_tokens = [token for token in tokens if token not in stop_words]
+            normalized_text = ' '.join(filtered_tokens)
+            return normalized_text
+        else:
+            logging.error("Expected a string while normalizing text.")
+            raise ValueError("Expected a string")
 
     def preprocess_data(self):
         logging.info("Starting data preprocessing...")
-
         # Dynamically determine the base directory and construct the full path to each file
         base_dir = os.path.dirname(os.path.abspath(__file__))
         data_dir = os.path.join(base_dir, 'shopping_queries_dataset')
@@ -32,7 +53,7 @@ class DataPreprocessor:
         logging.info(f"Examples DataFrame shape: {self.examples_df.shape}")
         logging.info(f"Products DataFrame shape: {self.products_df.shape}")
         logging.info(f"Sources DataFrame shape: {self.sources_df.shape}")
-
+        print("Loaded DataFrames shapes:")
         print("Examples DataFrame shape:", self.examples_df.shape)
         print("Products DataFrame shape:", self.products_df.shape)
         print("Sources DataFrame shape:", self.sources_df.shape)
@@ -41,15 +62,18 @@ class DataPreprocessor:
             # Data Cleaning
             self.examples_df = self.examples_df.dropna().drop_duplicates()
             # TODO: REDUCING THE SIZE OF THE FILE FOR INTEGRATION TESTING
-            self.products_df = self.products_df.dropna().drop_duplicates().sample(frac=0.0001)
+            self.products_df = self.products_df.dropna().drop_duplicates().sample(frac=0.001)
 
             self.sources_df = self.sources_df.dropna().drop_duplicates()
 
             # Feature Extraction
-            self.products_df['combined_text'] = self.products_df['product_title'] + " " + self.products_df[
-                'product_description']
-
-            output_dir = 'shopping_queries_dataset'
+            self.products_df['combined_text'] = (self.products_df['product_title']
+                                                 + " " + self.products_df['product_description']
+                                                 + " " + self.products_df['product_bullet_point'])
+            # Normalize combined_text
+            self.products_df['combined_text'] = self.products_df['combined_text'].apply(self.normalize_text)
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            output_dir = os.path.join(base_dir, 'shopping_queries_dataset')
             output_files = {
                 'examples': 'processed_examples.parquet',
                 'products': 'processed_products.parquet',
@@ -62,6 +86,13 @@ class DataPreprocessor:
             for df_name, file_name in output_files.items():
                 df = getattr(self, f'{df_name}_df')
                 file_path = os.path.join(output_dir, file_name)
+
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+                    print(f"The file {file_path} has been deleted.")
+                else:
+                    print(f"The file {file_path} does not exist.")
+
                 if df_name == 'sources':
                     print(f"Saving file to {file_path}")
                     logging.info(f"Saving file to {file_path}")
@@ -88,7 +119,10 @@ class DataPreprocessor:
             product_mappings[product_id] = (row['product_title'], row['product_description'])
         logging.info("Data preprocessing completed successfully.")
         print("Data preprocessing completed successfully.")
+        self.preprocessing_complete = True
 
+    def is_preprocessing_complete(self):
+        return self.preprocessing_complete
 
 if __name__ == "__main__":
     preprocessor = DataPreprocessor()

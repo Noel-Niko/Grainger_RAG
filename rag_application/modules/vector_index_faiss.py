@@ -8,7 +8,7 @@ from transformers import AutoTokenizer, AutoModel
 import faiss
 from typing import Tuple, List
 import logging
-from preprocess_data import DataPreprocessor
+# from preprocess_data import DataPreprocessor
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -59,13 +59,13 @@ class VectorIndex:
             return cls._instance
 
     def __init__(self, products_file=None, nlist=100, m=16, batch_size=32):
+        self.products_df = None
         self.llm = None
         self.products_file = products_file
         self.nlist = nlist
         self.m = m
         self.batch_size = batch_size
         self.embeddings_dict = {}
-        self.data_preprocessor = DataPreprocessor()
         print("VectorIndex instance created.")
         logging.info("VectorIndex instance created.")
 
@@ -197,6 +197,7 @@ class VectorIndex:
         logging.info("Searching the FAISS index.")
         print("Searching the FAISS index.")
         distance, result_index = self._index.search(query_vector[0], k)
+        # distance, result_index = self._index.search(query_vector, k)
 
         try:
             logging.info(f"Returning distance: {str(distance.tolist()[0])}")
@@ -347,21 +348,19 @@ class VectorIndex:
         # Extract the product information based on the returned indices
         product_info_list = []
         for index in relevant_product_indices:
-            pid = None
             try:
-                pid = self.products_df.iloc[index]['numeric_index']
                 product_info = (
                     f"ID: {index}, "
-                    f"Name: {self.products_df.loc[pid, 'product_title']}, "
-                    f"Description: {self.products_df.loc[pid, 'product_description']}, "
-                    f"Key Facts: {self.products_df.loc[pid, 'product_bullet_point']}, "
-                    f"Brand: {self.products_df.loc[pid, 'product_brand']}, "
-                    f"Color: {self.products_df.loc[pid, 'product_color']}, "
-                    f"Location: {self.products_df.loc[pid, 'product_locale']}"
+                    f"Name: {self.products_df.iloc[index]['product_title']}, "
+                    f"Description: {self.products_df.iloc[index]['product_description']}, "
+                    f"Key Facts: {self.products_df.iloc[index]['product_bullet_point']}, "
+                    f"Brand: {self.products_df.iloc[index]['product_brand']}, "
+                    f"Color: {self.products_df.iloc[index]['product_color']}, "
+                    f"Location: {self.products_df.iloc[index]['product_locale']}"
                 )
                 product_info_list.append(product_info)
             except KeyError:
-                logging.warning(f"Product ID {pid} not found in the DataFrame.")
+                logging.warning(f"Product ID {index} not found in the DataFrame.")
 
         # Join the product information into a single string
         product_info_str = ", ".join(product_info_list)
@@ -392,23 +391,6 @@ class VectorIndex:
         else:
             logging.error(f"File {products_file} not found after {max_retries * wait_time} seconds.")
             raise FileNotFoundError(f"File {products_file} not found after {max_retries * wait_time} seconds.")
-
-
-# def search_and_generate_response(self, refined_query: str, llm, k: int = 5) -> str:
-    #     _, relevant_product_indices = self.search_index(refined_query, k=k)
-    #     product_info = ", ".join(
-    #         [f"ID: {pid}, "
-    #          f"Name: {self.products_df.loc[pid, 'product_title']}, "
-    #          f"Description: {self.products_df.loc[pid, 'product_description']},"
-    #          f"Key Facts: {self.products_df.loc[pid, 'product_bullet_point']},"
-    #          f"Brand: {self.products_df.loc[pid, 'product_brand']},"
-    #          f"Color: {self.products_df.loc[pid, 'product_color']},"
-    #          f"Location: {self.products_df.loc[pid, 'product_locale']},"
-    #          for pid in relevant_product_indices]
-    #         # for pid in relevant_product_indices[0]]
-    #     )
-    #     logging.info(f"From search_and_generate_response returning: {product_info}")
-    #     return product_info
 
 if __name__ == "__main__":
     try:

@@ -16,30 +16,6 @@ class RAGApplication:
         self.llm_connection = ChatOpenAI(api_key=chatOpenAiKey)
         self.current_query = None
 
-
-    # Persist the state to prevent recreating the index
-    # def get_vector_index(self):
-    #     """Get or create the VectorIndex instance."""
-    #     if 'vector_index' not in st.session_state:
-    #         logging.info("Creating VectorIndex instance")
-    #         try:
-    #             with open('vector_index.pkl', 'rb') as file:
-    #                 self.vector_index = pickle.load(file)
-    #                 st.session_state['vector_index'] = self.vector_index
-    #                 logging.info("VectorIndex instance loaded from file")
-    #         except (FileNotFoundError, pickle.PickleError) as e:
-    #             logging.error("Failed to load VectorIndex from file: {}".format(e))
-    #             logging.info("Creating VectorIndex instance")
-    #             base_dir = os.path.dirname(os.path.abspath(__file__))
-    #             data_dir = os.path.join(base_dir, 'shopping_queries_dataset')
-    #             products_file = os.path.join(data_dir, 'processed_products.parquet')
-    #             self.vector_index = VectorIndex.get_instance(products_file=products_file)
-    #             st.session_state['vector_index'] = self.vector_index
-    #             logging.info("VectorIndex instance created and saved to session state")
-    #         else:
-    #             logging.info("VectorIndex instance already exists in session state")
-    #             self.vector_index = st.session_state['vector_index']
-
     def get_vector_index(self):
         """Get or create the VectorIndex instance."""
         # Check if 'vector_index' exists in session state
@@ -78,8 +54,8 @@ class RAGApplication:
         # Parse the query using the LLM
         refined_query = self.llm_connection.invoke(f"{initial_question_wrapper} {query}").content
 
+        logging.info(f"**************************    Searching in FAISS for {refined_query}    *******************************")
         # Search for the refined query in the FAISS index
-
         context_faiss_response = self.vector_index.search_and_generate_response(refined_query, self.llm_connection, k=5)
         if context_faiss_response is None or context_faiss_response.strip() == "":
             context_faiss_response = no_matches

@@ -58,6 +58,7 @@ LOCAL INSTALL AND RUN
           - rag_application/modules/shopping_queries_dataset
           - rag_application/test_shopping_queries_dataset
   - Update local_start.sh with your path: export PYTHONPATH="
+  - The size of the products_df data frame has been reduced for speed of processing for test and demo. It can be returned to full size in preprocess_data.py line 44 under  # Data Cleaning
   - Run local_start.sh
 
   

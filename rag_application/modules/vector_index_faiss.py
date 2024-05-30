@@ -1,4 +1,5 @@
 import os
+import pickle
 import time
 import pandas as pd
 import numpy as np
@@ -24,10 +25,11 @@ class VectorIndex:
     _is_index_created = False
 
     @classmethod
-    def getInstance(cls, **kwargs):
+    def get_instance(cls, **kwargs):
         """Static access method to get the singleton instance, enforcing required arguments."""
         if cls._instance is None:
-            # Safely retrieve 'products_file' from kwargs, providing a default value if not found
+            logging.info("Loading vector from pickle file...")
+            pickle_file = kwargs.get('pickle_file', 'vector_index.pkl')
             products_file = kwargs.get('products_file', '')
 
             # Check if 'products_file' is a string
@@ -36,22 +38,25 @@ class VectorIndex:
                 logging.error("'products_file' argument must be a string")
                 raise TypeError("'products_file' argument must be a string")
 
-            # Proceed with instantiation if 'products_file' is valid
-            print("Creating instance of VectorIndex...")
-            logging.info("Creating instance of VectorIndex...")
-            cls._instance = cls(products_file=products_file)
-
-            try:
-                print("Instance of VectorIndex created. Initializing the instance of VectorIndex...")
-                logging.info("Instance of VectorIndex created. Initializing the instance of VectorIndex...")
-                cls._instance.load_processed_products()
-
-                cls._instance.create_faiss_index()
-            except Exception as e:
-                logging.error(f"Failed to initialize the FAISS index: {str(e)}")
-                print(f"Error initializing the FAISS index: {str(e)}")
-
-        return cls._instance
+            if os.path.exists(pickle_file):
+                logging.info(f"Loading VectorIndex instance from {pickle_file}")
+                with open(pickle_file, 'rb') as file:
+                    cls._instance = pickle.load(file)
+                logging.info("VectorIndex instance loaded from pickle file.")
+            else:
+                logging.info("Creating new instance of VectorIndex...")
+                cls._instance = cls(products_file=products_file)
+                try:
+                    cls._instance.verify_or_wait_for_file_creation()
+                    cls._instance.load_processed_products()
+                    cls._instance.create_faiss_index()
+                    with open(pickle_file, 'wb') as file:
+                        pickle.dump(cls._instance, file)
+                    logging.info("VectorIndex instance created and serialized to pickle file.")
+                except Exception as e:
+                    logging.error(f"Failed to initialize the FAISS index: {str(e)}")
+                    raise RuntimeError(f"Error initializing the FAISS index: {str(e)}")
+            return cls._instance
 
     def __init__(self, products_file=None, nlist=100, m=16, batch_size=32):
         self.llm = None
@@ -60,6 +65,7 @@ class VectorIndex:
         self.m = m
         self.batch_size = batch_size
         self.embeddings_dict = {}
+        self.data_preprocessor = DataPreprocessor()
         print("VectorIndex instance created.")
         logging.info("VectorIndex instance created.")
 
@@ -162,7 +168,6 @@ class VectorIndex:
     def search_index(self, query: str, k: int = 10) -> Tuple[np.ndarray, np.ndarray]:
         """
         Searches for the k nearest neighbors of the query.
-
         :param query: The text query to search for.
         :param k: Number of nearest neighbors to return.
         :return: A tuple containing distances and indices of the nearest neighbors.
@@ -209,7 +214,8 @@ class VectorIndex:
 
         return distance, result_index
 
-    def find_changed_products(self, old_descriptions, new_descriptions):
+    @staticmethod
+    def find_changed_products(old_descriptions, new_descriptions):
         """
         Identifies products whose descriptions have changed.
 
@@ -329,6 +335,7 @@ class VectorIndex:
 
     def search_and_generate_response(self, refined_query: str, llm, k: int = 5) -> str:
         # Search the FAISS index with the refined query
+        logging.info(f"Searching the index for: {refined_query}")
         distances, relevant_product_indices = self.search_index(refined_query, k=k)
 
         # Check the type and shape of relevant_product_indices
@@ -362,7 +369,32 @@ class VectorIndex:
 
         return product_info_str
 
-    # def search_and_generate_response(self, refined_query: str, llm, k: int = 5) -> str:
+    @classmethod
+    def verify_or_wait_for_file_creation(cls):
+        logging.info("Waiting for file generation.")
+
+        # Define the path to the file
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        data_dir = os.path.join(base_dir, 'shopping_queries_dataset')
+        products_file = os.path.join(data_dir, 'processed_products.parquet')
+
+        # Parameters for retrying
+        max_retries = 10
+        wait_time = 5  # seconds
+
+        for attempt in range(max_retries):
+            if os.path.exists(products_file):
+                logging.info(f"File {products_file} found.")
+                break
+            else:
+                logging.warning(f"File {products_file} not found. Retrying in {wait_time} seconds...")
+                time.sleep(wait_time)
+        else:
+            logging.error(f"File {products_file} not found after {max_retries * wait_time} seconds.")
+            raise FileNotFoundError(f"File {products_file} not found after {max_retries * wait_time} seconds.")
+
+
+# def search_and_generate_response(self, refined_query: str, llm, k: int = 5) -> str:
     #     _, relevant_product_indices = self.search_index(refined_query, k=k)
     #     product_info = ", ".join(
     #         [f"ID: {pid}, "
@@ -378,38 +410,9 @@ class VectorIndex:
     #     logging.info(f"From search_and_generate_response returning: {product_info}")
     #     return product_info
 
-
 if __name__ == "__main__":
     try:
-        preprocessor = DataPreprocessor()
-        logging.info("Vector Index Faiss initializing data preprocessing")
-        preprocessor.preprocess_data()
-        logging.info("Vector Index Faiss initialized data preprocessing completed.")
-        while not preprocessor.is_preprocessing_complete():
-            logging.info("Waiting for file generation.")
-            time.sleep(1)
-        # Wait for the file to exist
-        max_retries = 10
-        wait_time = 5  # seconds
-
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        data_dir = os.path.join(base_dir, 'shopping_queries_dataset')
-        products_file = os.path.join(data_dir, 'processed_products.parquet')
-
-        for attempt in range(max_retries):
-            if os.path.exists(products_file):
-                break
-            else:
-                logging.error(f"File {products_file} not found. Retrying in {wait_time} seconds...")
-                print(f"File {products_file} not found. Retrying in {wait_time} seconds...")
-                time.sleep(wait_time)
-        else:
-            logging.error(f"File {products_file} not found after {max_retries * wait_time} seconds.")
-            raise FileNotFoundError(f"File {products_file} not found after {max_retries * wait_time} seconds.")
-
-        vector_index = VectorIndex(products_file, batch_size=32)
-        vector_index.load_processed_products()
-        vector_index.create_faiss_index()
+        VectorIndex.get_instance()
     except Exception as e:
         logging.error(f"Error creating the FAISS index: {e}")
         raise RuntimeError(f"Error creating the FAISS index: {e}")

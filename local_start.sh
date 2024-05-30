@@ -12,10 +12,15 @@ echo "Active Conda environment:"
 conda env list
 echo "Python path:"
 which python
+
 # Print Python version
 echo "*********************************************************Python version:"
 python --version
-#
+
+# Print faiss-cpu version
+echo "*********************************************************faiss-cpu version:"
+python -c "import faiss; print(faiss.__version__)"
+
 ## Add conda-forge channel
 #conda config --add channels conda-forge
 #conda config --set pip_interop_enabled True
@@ -32,8 +37,10 @@ python --version
 #conda install -y -c conda-forge transformers==4.41.1
 #conda install -c intel mkl
 #conda install nltk
+#conda install pickle
 #python -m nltk.downloader stopwords
 #python -m nltk.downloader punkt
+
 ##conda install -y pytest==8.2.1  <<< testing pkg
 ##conda install -y Faker==25.2.0  <<< testing pkg
 

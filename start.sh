@@ -34,6 +34,7 @@ conda install -y -c pytorch pytorch==2.2.2 torchvision torchaudio -c defaults
 conda install -y -c conda-forge transformers==4.41.1
 conda install -c intel mkl
 conda install nltk
+conda install pickle
 python -m nltk.downloader stopwords
 python -m nltk.downloader punkt
 

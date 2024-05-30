@@ -13,7 +13,6 @@ class RAGApplication:
         self.vector_index = VectorIndex.getInstance(products_file=self.products_file)
         self.llm_connection = ChatOpenAI(api_key=chatOpenAiKey)
         self.current_query = None
-        # self.llm_interaction = wrap_openai(self.llm_interaction)
 
     def main(self):
         st.title("Relevance-Aware Generation (RAG) Application")

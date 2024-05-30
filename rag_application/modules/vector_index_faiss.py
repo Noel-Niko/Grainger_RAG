@@ -21,6 +21,7 @@ class VectorIndex:
     _instance = None
     _index = None
     _products_df = None
+    _is_index_created = False
 
     @classmethod
     def getInstance(cls, **kwargs):
@@ -149,6 +150,7 @@ class VectorIndex:
         logging.info("Embedding...")
         print("Embedding...")
         self._index.add_with_ids(embeddings_np, self.products_df.index.values.astype(np.int64))
+        self._is_index_created = True
 
     def search_index(self, query: str, k: int = 10) -> Tuple[np.ndarray, np.ndarray]:
         """

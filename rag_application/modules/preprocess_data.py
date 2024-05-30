@@ -14,6 +14,7 @@ class DataPreprocessor:
         self.sources_df = None
         self.product_id_to_index = {}
         self.index_to_product_id = {}
+        self.preprocessing_complete = False
 
     def preprocess_data(self):
         logging.info("Starting data preprocessing...")
@@ -40,17 +41,34 @@ class DataPreprocessor:
 
         try:
             # Data Cleaning
-            self.examples_df = self.examples_df.dropna(how='any', inplace=True)
+            self.examples_df = self.examples_df.drop_duplicates()
             # TODO: REDUCING THE SIZE OF THE FILE FOR INTEGRATION TESTING -->> .sample(frac=0.001)
-            self.products_df = self.products_df.drop_duplicates().sample(frac=0.001).dropna(how='any', inplace=True)
-            self.sources_df = self.sources_df.drop_duplicates().dropna(how='any', inplace=True)
+            self.products_df = self.products_df.drop_duplicates().sample(frac=0.001)
+            self.sources_df = self.sources_df.drop_duplicates()
+
+            # Ensure product_id is not null or empty
+            if self.products_df is None or self.products_df.empty:
+                logging.warning("Products DataFrame is None or empty. Skipping further processing.")
+                return
+
+            # Ensure product_id is not null or empty and remove empty and duplicated rows
+            temp_df = self.products_df.dropna(how='all').drop_duplicates()
+            temp_df = temp_df[temp_df['product_id'].notnull()]
 
             # Create mappings between product IDs and numeric indices because FAISS requires index values of type int.
             logging.info("Creating numerical index column...")
             print("Creating numerical index column...")
-            self.product_id_to_index = {pid: idx for idx, pid in enumerate(self.products_df['product_id'])}
-            self.index_to_product_id = {idx: pid for pid, idx in self.product_id_to_index.items()}
-            self.products_df['numeric_index'] = self.products_df['product_id'].map(self.product_id_to_index)
+
+            if 'numeric_index' not in temp_df.columns:
+                temp_df['numeric_index'] = None
+            unique_ids = {}
+            for idx, pid in enumerate(temp_df['product_id']):
+                if pid not in unique_ids:
+                    unique_ids[pid] = idx
+
+            temp_df['numeric_index'] = temp_df['product_id'].map(unique_ids).astype(int)
+            self.products_df = temp_df
+
             logging.info("Completed creating numerical index column...")
             print("Completed creating numerical index column...")
 
@@ -87,13 +105,18 @@ class DataPreprocessor:
             return
 
         # Improves search speed. Note: watch memory implications over time.
-        product_mappings = {}
-        for _, row in self.products_df.iterrows():
-            product_id = row['product_id']
-            product_mappings[product_id] = (row['product_title'], row['product_description'])
+        # Removed as we are not retrieving description my product_id for this use case.
+        # product_mappings = {}
+        # for _, row in self.products_df.iterrows():
+        #     product_id = row['product_id']
+        #     product_mappings[product_id] = (row['product_title'], row['product_description'])
+
         logging.info("Data preprocessing completed successfully.")
         print("Data preprocessing completed successfully.")
+        self.preprocessing_complete = True
 
+    def is_preprocessing_complete(self):
+        return self.preprocessing_complete
 
 if __name__ == "__main__":
     preprocessor = DataPreprocessor()

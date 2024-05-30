@@ -44,7 +44,7 @@ echo "*********************************************************faiss-cpu version
 python -c "import faiss; print(faiss.__version__)"
 
 # Run the preprocessing script
-python modules/preprocess_data.py || { echo "Preprocessing failed"; exit 1; }
+python  modules/preprocess_data.py || { echo "Preprocessing failed"; exit 1; }
 
 
 #TODO: for running locally only:

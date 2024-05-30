@@ -12,6 +12,8 @@ class DataPreprocessor:
         self.examples_df = None
         self.products_df = None
         self.sources_df = None
+        self.product_id_to_index = {}
+        self.index_to_product_id = {}
 
     def preprocess_data(self):
         logging.info("Starting data preprocessing...")
@@ -32,7 +34,7 @@ class DataPreprocessor:
         logging.info(f"Examples DataFrame shape: {self.examples_df.shape}")
         logging.info(f"Products DataFrame shape: {self.products_df.shape}")
         logging.info(f"Sources DataFrame shape: {self.sources_df.shape}")
-
+        print("Loaded DataFrames shapes:")
         print("Examples DataFrame shape:", self.examples_df.shape)
         print("Products DataFrame shape:", self.products_df.shape)
         print("Sources DataFrame shape:", self.sources_df.shape)
@@ -41,13 +43,9 @@ class DataPreprocessor:
             # Data Cleaning
             self.examples_df = self.examples_df.dropna().drop_duplicates()
             # TODO: REDUCING THE SIZE OF THE FILE FOR INTEGRATION TESTING
-            self.products_df = self.products_df.dropna().drop_duplicates().sample(frac=0.00001)
+            self.products_df = self.products_df.dropna().drop_duplicates().sample(frac=0.001)
 
             self.sources_df = self.sources_df.dropna().drop_duplicates()
-
-            # Feature Extraction
-            self.products_df['combined_text'] = self.products_df['product_title'] + " " + self.products_df[
-                'product_description']
 
             output_dir = 'shopping_queries_dataset'
             output_files = {
@@ -69,7 +67,8 @@ class DataPreprocessor:
                 else:
                     print(f"Saving file to {file_path}")
                     logging.info(f"Saving file to  {file_path}")
-                    df.to_parquet(file_path)
+                    # Overwrite any existing file
+                    df.to_parquet(file_path, mode='w')
 
             logging.info("Data preprocessing completed successfully.")
 

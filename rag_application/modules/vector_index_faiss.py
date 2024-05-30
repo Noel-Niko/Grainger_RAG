@@ -43,6 +43,7 @@ class VectorIndex:
             try:
                 print("Instance of VectorIndex created. Initializing the instance of VectorIndex...")
                 logging.info("Instance of VectorIndex created. Initializing the instance of VectorIndex...")
+                cls._instance.load_processed_products()
                 cls._instance.create_faiss_index()
             except Exception as e:
                 logging.error(f"Failed to initialize the FAISS index: {str(e)}")
@@ -63,8 +64,10 @@ class VectorIndex:
     def load_processed_products(self):
         """Loads the processed products data with error handling."""
         print("Loading preprocessed products.")
+        logging.info("Loading preprocessed products.")
         try:
             self.products_df = pd.read_parquet(self.products_file)
+            self.products_df.set_index('product_id', inplace=True)
             logging.info("Completed loading preprocessed products.")
             print("Completed loading preprocessed products.")
         except FileNotFoundError:
@@ -121,7 +124,8 @@ class VectorIndex:
 
         d = embeddings.shape[1]  # Dimensionality of the embeddings
 
-        # Create the quantizer and index
+        # Create the quantizer and index. Chose IndexFlatL2 over the possible better
+        # IVFPQ due to availability of documentation
         logging.info("Creating quantizer")
         print("Creating quantizer")
         quantizer = faiss.IndexFlatL2(d)
@@ -136,7 +140,7 @@ class VectorIndex:
         self._index.train(embeddings_np)
         logging.info("Embedding...")
         print("Embedding...")
-        self._index.add(embeddings_np)
+        self._index.add_with_ids(embeddings_np, self.products_df.index.values.astype(np.int64))
 
     def search_index(self, query: str, k: int = 10) -> Tuple[np.ndarray, np.ndarray]:
         """
@@ -307,19 +311,55 @@ class VectorIndex:
         return self.products_df.head(10)
 
     def search_and_generate_response(self, refined_query: str, llm, k: int = 5) -> str:
-        _, relevant_product_indices = self.search_index(refined_query, k=k)
-        product_info = ", ".join(
-            [f"ID: {pid}, "
-             f"Name: {self.products_df.loc[pid, 'product_title']}, "
-             f"Description: {self.products_df.loc[pid, 'product_description']},"
-             f"Key Facts: {self.products_df.loc[pid, 'product_bullet_point']},"
-             f"Brand: {self.products_df.loc[pid, 'product_brand']},"
-             f"Color: {self.products_df.loc[pid, 'product_color']},"
-             f"Location: {self.products_df.loc[pid, 'product_locale']},"
-             for pid in relevant_product_indices]
-        )
-        logging.info(f"From search_and_generate_response returning: {product_info}")
-        return product_info
+        # Search the FAISS index with the refined query
+        distances, relevant_product_indices = self.search_index(refined_query, k=k)
+
+        # Check the type and shape of relevant_product_indices
+        print(f"Type of relevant_product_indices: {type(relevant_product_indices)}")
+        print(f"Shape of relevant_product_indices: {relevant_product_indices.shape}")
+        logging.info(f"Type of relevant_product_indices: {type(relevant_product_indices)}")
+        logging.info(f"Shape of relevant_product_indices: {relevant_product_indices.shape}")
+
+        # Extract the product information based on the returned indices
+        product_info_list = []
+        for index in relevant_product_indices:
+            pid = None
+            try:
+                pid = self.products_df.iloc[index]['__index_level_0__']
+                product_info = (
+                    f"ID: {index}, "
+                    f"Name: {self.products_df.loc[pid, 'product_title']}, "
+                    f"Description: {self.products_df.loc[pid, 'product_description']}, "
+                    f"Key Facts: {self.products_df.loc[pid, 'product_bullet_point']}, "
+                    f"Brand: {self.products_df.loc[pid, 'product_brand']}, "
+                    f"Color: {self.products_df.loc[pid, 'product_color']}, "
+                    f"Location: {self.products_df.loc[pid, 'product_locale']}"
+                )
+                product_info_list.append(product_info)
+            except KeyError:
+                logging.warning(f"Product ID {pid} not found in the DataFrame.")
+
+        # Join the product information into a single string
+        product_info_str = ", ".join(product_info_list)
+        logging.info(f"From search_and_generate_response returning: {product_info_str}")
+
+        return product_info_str
+
+    # def search_and_generate_response(self, refined_query: str, llm, k: int = 5) -> str:
+    #     _, relevant_product_indices = self.search_index(refined_query, k=k)
+    #     product_info = ", ".join(
+    #         [f"ID: {pid}, "
+    #          f"Name: {self.products_df.loc[pid, 'product_title']}, "
+    #          f"Description: {self.products_df.loc[pid, 'product_description']},"
+    #          f"Key Facts: {self.products_df.loc[pid, 'product_bullet_point']},"
+    #          f"Brand: {self.products_df.loc[pid, 'product_brand']},"
+    #          f"Color: {self.products_df.loc[pid, 'product_color']},"
+    #          f"Location: {self.products_df.loc[pid, 'product_locale']},"
+    #          for pid in relevant_product_indices]
+    #         # for pid in relevant_product_indices[0]]
+    #     )
+    #     logging.info(f"From search_and_generate_response returning: {product_info}")
+    #     return product_info
 
 
 if __name__ == "__main__":

@@ -29,7 +29,7 @@ class RAGApplication:
 
         # Search for the refined query in the FAISS index
         context_faiss_response = self.vector_index.search_and_generate_response(refined_query, self.llm_connection, k=5)
-        if context_faiss_response is None:
+        if context_faiss_response is None or context_faiss_response.strip() == "":
             context_faiss_response = no_matches
 
         # Pass the product information back to the LLM to form a response message

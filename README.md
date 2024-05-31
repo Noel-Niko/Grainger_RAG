@@ -39,28 +39,29 @@
 - **Fault Tolerance**: S3 ensures high availability and durability of the index, minimizing the risk of data loss. The integration of EMR and ECS adds layers of resilience through distributed computing models and managed container orchestration.
 - **Efficient Updates**: Combining EMR for data preprocessing with Lambda for index updates ensures that the system can efficiently handle both large-scale data transformations and timely index updates.
 - **Seamless Deployments**: The use of ECS for application deployment ensures zero downtime during updates, maintaining uninterrupted service availability. ECS's support for rolling updates and blue/green deployments to ensure reliability and availability.
-- 
+
+
 
 ![image](https://github.com/Noel-Niko/grainger_rag/assets/83922762/cb599178-5400-4ce8-984b-bec9e6d4e869)
 
 
 
 
-LOCAL INSTALL AND RUN
-  - Obtain and update constants.py with api key  
-  - Create a local conda env named: rag_env
-  - Download https://github.com/amazon-science/esci-data/blob/main/shopping_queries_dataset/shopping_queries_dataset_products.parquet
+### LOCAL INSTALL AND RUN
+  1. Obtain and update constants.py with api key  
+  2. Create a local conda env named: rag_env
+  3. Download https://github.com/amazon-science/esci-data/blob/main/shopping_queries_dataset/shopping_queries_dataset_products.parquet
       - Place it in BOTH:
           - rag_application/modules/shopping_queries_dataset
           - rag_application/shopping_queries_dataset
-  - Update local_start.sh with your path: export PYTHONPATH="
-  - The size of the products_df data frame can be reduced for speed of processing for test and demo. It can be returned adjusted in preprocess_data.py line 44 under  # Data Cleaning
-  - Run local_start.sh
+  4. Update local_start.sh with your path: export PYTHONPATH="
+  5. The size of the products_df data frame can be reduced for speed of processing for test and demo. It can be returned adjusted in preprocess_data.py line 44 under  # Data Cleaning
+  6. Run local_start.sh
 
     NOTE: Pickle, Singleton design pattern, and streamlit state annotation are used so that while the program is running the creation of the initial faiss index is persisted and reused to prevent the need to recreate. Updates can be made to that existing index through the methods included and the pickle file replace with the updated version.
 
   
-LOCAL UNIT TESTING  
+### LOCAL UNIT TESTING  
   Note: Due to the use of conda to help manage library version compatibility, the packages to install are listed primarily in the start shell and only those requiring a pip install in requirements.txt To set up a local env 
   1. Create a conda env named: rag_env
   2. Install the packages as listed in both requirements.txt and local_start.sh AND INCLUDE the commented-out test packages:
@@ -72,19 +73,26 @@ LOCAL UNIT TESTING
 
 
 
-TROUBLE-SHOOTING
+### TROUBLE-SHOOTING
 
 If - FAISS vector index build failed ./start.sh: line 43:   174 Killed    python -m rag_application.modules.vector_index_faiss
+
 THEN - increase memory limits e.g. in Docker to handle the required large shopping_queries_dataset_products.parquet 
    OR use self.products_df.dropna().drop_duplicates().sample(frac=0.001) in preprocess_data.py
 
+
 IF - your Docker build fails with un-found url's
+
 THEN - you are likely running on a corporate (i.e. Grainger) computer with restrictions circumventing the wget
 
+
 IF - you are running unit tests, and the self._index.add(embeddings_np) causes infinite hanging or you receive a SIGABRT
+
 THEN - re-run the application on a NON-apple silicone device
 
+
 IF - you continue to experience 'hanging' or infinite looping, or receive a segmentation fault error.
+
 THEN - the cause is likely the mismatch between faiss-cpu, intel mkl, pytorch, python, numbpy, and or using apple silicon  (For example see [here](https://numpy.org/devdocs/user/troubleshooting-importerror.html).)
   - be aware: Faiss 1.7.3 is not compatible with Python >=3.10 or the corresponding pytorch for 3.9
   - ensure your local is running in a conda env with the versions as directed above

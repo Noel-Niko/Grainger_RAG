@@ -43,7 +43,7 @@ class RAGApplication:
 
     def main(self):
         self.get_vector_index()
-        st.title("Relevance-Aware Generation (RAG) Application")
+        st.title("Retrieval-Augmented Generation (RAG) Application")
         query = st.text_input("Enter your product-based question:", value="", placeholder="")
         if st.button("Submit"):
             self.current_query = query

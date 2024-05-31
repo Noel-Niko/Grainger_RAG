@@ -256,18 +256,18 @@ class VectorIndex:
         logging.info(
             "Making batch updates for the descriptions of multiple products and regenerating their embeddings.")
         print("Making batch updates for the descriptions of multiple products and regenerating their embeddings.")
+
         # Find products whose descriptions have changed
         changed_products = self.find_changed_products(
             {pid: row['product_description'] for pid, row in self.products_df.iterrows()}, updates)
 
         # Update descriptions in the DataFrame
         for product_id, new_description in updates.items():
-            if product_id not in self.products_df['product_id'].values:
+            if product_id not in self.products_df.index:
                 raise KeyError(f"Product ID {product_id} not found in the DataFrame.")
-            product_index = self.products_df[self.products_df['product_id'] == product_id].index[0]
-            self.products_df.at[product_index, 'product_description'] = new_description
+            self.products_df.at[product_id, 'product_description'] = new_description
             self.products_df.at[
-                product_index, 'combined_text'] = f"{self.products_df.at[product_index, 'product_title']} {new_description}"
+                product_id, 'combined_text'] = f"{self.products_df.at[product_id, 'product_title']} {new_description}"
 
         # Regenerate embeddings only for changed products
         try:
@@ -276,6 +276,7 @@ class VectorIndex:
         except Exception as e:
             logging.error("Error: Unable to convert changed products list to string")
             print("Error: Unable to convert changed products list to string")
+
         if changed_products:
             self.update_embeddings_for_changed_products(list(changed_products))
 
@@ -283,14 +284,17 @@ class VectorIndex:
         """Re-encodes and re-adds embeddings for products whose descriptions were changed."""
         logging.info("Re-encoding and re-adding embeddings for products whose descriptions were changed.")
         print("Re-encoding and re-adding embeddings for products whose descriptions were changed.")
+
         for product_id in changed_product_ids:
             try:
-                print(f"Product: {product_id}...")
-                product_index = self.products_df[self.products_df['product_id'] == product_id].index[0]
-                combined_text = f"{self.products_df.at[product_index, 'product_title']} {self.products_df.at[product_index, 'product_description']}"
+                combined_text = f"{self.products_df.at[product_id, 'product_title']} {self.products_df.at[product_id, 'product_description']}"
                 new_embedding = self.encode_text_to_embedding([combined_text])[0]
                 self._index.add_with_ids(new_embedding.reshape(1, -1), np.array([product_id]))
                 self.embeddings_dict[product_id] = new_embedding
+                print(f"Product: {product_id}... Embedding updated.")
+            except KeyError as e:
+                logging.error(f"Product ID {product_id} not found in the DataFrame.")
+                raise RuntimeError(f"Product ID {product_id} not found in the DataFrame.")
             except Exception as e:
                 logging.error(f"Error updating embeddings for product ID {product_id}: {e}")
                 raise RuntimeError(f"Error updating embeddings for product ID {product_id}: {e}")
@@ -298,16 +302,15 @@ class VectorIndex:
         logging.info("Completed embedding updates.")
         print("Completed embedding updates.")
 
-    def remove_product_by_id(self, product_id: str):
+    def remove_product_by_id(self, product_id):
         """Removes a product by ID from the index and the underlying data store."""
         logging.info(f"Removing a product by {product_id} from the index and the underlying data store.")
         print(f"Removing a product by {product_id} from the index and the underlying data store.")
-        if product_id not in self.products_df['product_id'].values:
-            raise RuntimeError("product_id not found.")
+        if product_id not in self.products_df.index.values:
+            raise ValueError(f"Product ID {product_id} not found.")
 
-        product_index = self.products_df[self.products_df['product_id'] == product_id].index[0]
-        self.products_df.drop(product_index, inplace=True)
-        self.create_faiss_index()  # Re-create the index after removing the product
+        # Remove the product by dropping the row with the given index label
+        self.products_df = self.products_df.drop(product_id)
         logging.info(f"Completed removing a product by {product_id} from the index and the underlying data store.")
         print(f"Completed removing a product by {product_id} from the index and the underlying data store.")
 

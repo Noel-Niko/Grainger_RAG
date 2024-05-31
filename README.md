@@ -80,11 +80,11 @@ If - FAISS vector index build failed ./start.sh: line 43:   174 Killed    python
 THEN - increase memory limits e.g. in Docker to handle the required large shopping_queries_dataset_products.parquet 
    OR use self.products_df.dropna().drop_duplicates().sample(frac=0.001) in preprocess_data.py
 
-IF - your Docker build fails with unfound url's
-THEN - you are likely running on a Grainger computer with restrictions circumventing the wget
+IF - your Docker build fails with un-found url's
+THEN - you are likely running on a corporate (i.e. Grainger) computer with restrictions circumventing the wget
 
 IF - you are running unit tests, and the self._index.add(embeddings_np) causes infinite hanging or you receive a SIGABRT
-THEN - re-run the application in a NON-apple silicone device
+THEN - re-run the application on a NON-apple silicone device
 
 IF - you continue to experience 'hanging' or infinite looping, or receive a segmentation fault error.
 THEN - the cause is likely the mismatch between faiss-cpu, intel mkl, pytorch, python, numbpy, and or using apple silicon  (For example see [here](https://numpy.org/devdocs/user/troubleshooting-importerror.html).)

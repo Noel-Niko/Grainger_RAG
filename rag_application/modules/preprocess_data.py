@@ -60,7 +60,7 @@ class DataPreprocessor:
             # Data Cleaning
             self.examples_df = self.examples_df.dropna().drop_duplicates()
             # TODO: REDUCING THE SIZE OF THE FILE FOR INTEGRATION TESTING
-            self.products_df = self.products_df.dropna().drop_duplicates().sample(frac=0.001)
+            self.products_df = self.products_df.dropna().drop_duplicates().sample(frac=0.01)
 
             self.sources_df = self.sources_df.dropna().drop_duplicates()
 

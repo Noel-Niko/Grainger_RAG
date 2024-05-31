@@ -28,21 +28,21 @@ conda config --set pip_interop_enabled True
 # Install required packages
 echo "Installing conda packages..."
 conda update --all -y
-conda install -c pytorch faiss-cpu=1.7.4 mkl=2021 blas=1.0=mkl
+conda install -y -c pytorch faiss-cpu=1.7.4 mkl=2021 blas=1.0=mkl
 conda install -y langchain==0.1.20
 conda install -y langchain-openai==0.0.8
 conda install -y langsmith==0.1.63
 conda install -y streamlit==1.35.0
-conda install -y -c pytorch pytorch==2.2.2 torchvision torchaudio -c defaults
+conda install -y -c pytorch pytorch==2.2.2 torchvision torchaudio
 conda install -y -c conda-forge transformers==4.41.1
-conda install -c intel mkl
-conda install nltk -y
-conda install pickle -y
+conda install -y -c intel mkl
+conda install -y nltk
+conda install -y pickle
 python -m nltk.downloader stopwords
 python -m nltk.downloader punkt
 
-##conda install -y pytest==8.2.1  <<< testing pkg
-##conda install -y Faker==25.2.0  <<< testing pkg
+#conda install -y pytest==8.2.1  <<< testing pkg
+#conda install -y Faker==25.2.0  <<< testing pkg
 
 # Print Python version
 echo "*********************************************************Python version:"

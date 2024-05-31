@@ -50,6 +50,7 @@ Seamless Deployments: Green/Blue deployment strategy ensures zero downtime durin
 
 
 LOCAL INSTALL AND RUN
+  - Obtain and update constants.py with api key  
   - Create a local conda env named: rag_env
   - Download https://github.com/amazon-science/esci-data/blob/main/shopping_queries_dataset/shopping_queries_dataset_products.parquet
       - Place it in BOTH:

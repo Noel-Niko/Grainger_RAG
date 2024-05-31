@@ -17,9 +17,10 @@ which python
 echo "*********************************************************Python version:"
 python --version
 
-# Print faiss-cpu version
-echo "*********************************************************faiss-cpu version:"
-python -c "import faiss; print(faiss.__version__)"
+# Additional pip updates and installations
+echo "Updating pip and installing packages from requirements.txt..."
+pip install --upgrade pip
+pip install -r requirements.txt
 
 ## Add conda-forge channel
 conda config --add channels conda-forge

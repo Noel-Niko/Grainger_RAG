@@ -18,6 +18,11 @@ which python
 echo "*********************************************************Python version:"
 python --version
 
+# Additional pip updates and installations
+echo "Updating pip and installing packages from requirements.txt..."
+pip install --upgrade pip
+pip install -r requirements.txt
+
 # Add conda-forge channel
 conda config --add channels conda-forge
 conda config --set pip_interop_enabled True

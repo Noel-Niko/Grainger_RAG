@@ -54,9 +54,9 @@ LOCAL INSTALL AND RUN
   - Download https://github.com/amazon-science/esci-data/blob/main/shopping_queries_dataset/shopping_queries_dataset_products.parquet
       - Place it in BOTH:
           - rag_application/modules/shopping_queries_dataset
-          - rag_application/test_shopping_queries_dataset
+          - rag_application/shopping_queries_dataset
   - Update local_start.sh with your path: export PYTHONPATH="
-  - The size of the products_df data frame has been reduced for speed of processing for test and demo. It can be returned to full size in preprocess_data.py line 44 under  # Data Cleaning
+  - The size of the products_df data frame can be reduced for speed of processing for test and demo. It can be returned adjusted in preprocess_data.py line 44 under  # Data Cleaning
   - Run local_start.sh
 
     NOTE: Pickle, Singleton design pattern, and streamlit state annotation are used so that while the program is running the creation of the initial faiss index is persisted and reused to prevent the need to recreate. Updates can be made to that existing index through the methods included and the pickle file replace with the updated version.

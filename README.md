@@ -3,43 +3,52 @@
 ![image](https://github.com/Noel-Niko/simple_retrieval_augmented_generation/assets/83922762/c78dde55-8b86-45e7-8f73-e393ebdb816a)
 ![R_A_G](https://github.com/Noel-Niko/grainger_rag/assets/83922762/038f8196-c9ba-4432-bad4-ff70d49142e9)
 
-Proposed Plan for Managing FAISS Index with AWS Services
+### Updated Document: Enhanced Plan for Managing FAISS Index with AWS Services
 
-Objective: Efficiently manage updates and distribution of a FAISS index across containers in a scalable and fault-tolerant manner.
+#### Objective:
+Efficiently manage updates and distribution of a FAISS index across containers in a scalable, fault-tolerant, and optimized manner, leveraging the power of AWS services for big data processing and machine learning.
 
-Architecture Overview:
+#### Architecture Overview:
 
-S3 as Index Repository: Utilize Amazon S3 to serve as the primary repository for the FAISS index. Store the complete index as an object in S3, ensuring durability and availability.
+- **S3 as Index Repository**: Utilize Amazon S3 to serve as the primary repository for the FAISS index. Store the complete index as an object in S3, ensuring durability and availability. Additionally, partitioning the index into smaller segments if the dataset is extremely large, to facilitate parallel processing and faster updates.
 
-Lambda for Index Updates: Implement AWS Lambda functions to handle index updates. These functions will be triggered by events such as product modifications or deletions. Upon triggering, Lambda will retrieve the latest index from S3, perform the necessary updates using FAISS update functions, and store the updated index back to S3.
+- **Elastic Map Reduce (EMR) for Data Preprocessing**: Integrate AWS EMR to preprocess and normalize the product data before generating or updating the FAISS index, doing the data transformation and preparation for a large data set with millions of products.
 
-Green/Blue Deployment with Containerization: Adopt a Green/Blue deployment strategy with container orchestration (e.g., Kubernetes). During updates, new container instances will be provisioned with the latest FAISS index fetched from S3. This ensures seamless updates without impacting the availability of the application.
+- **Lambda for Index Updates**: Implement AWS Lambda functions to handle index updates. These functions will be triggered by events such as product modifications or deletions. Upon triggering, Lambda will retrieve the latest index from S3, perform the necessary updates using FAISS update functions, and store the updated index back to S3.
 
-Detailed Workflow:
+- **Green/Blue Deployment with Containerization**: Adopt a Green/Blue deployment strategy with container orchestration (e.g., Kubernetes or Amazon EKS). During updates, new container instances will be provisioned with the latest FAISS index fetched from S3. This ensures seamless updates without impacting the availability of the application.
 
- - Index Initialization:
+#### Detailed Workflow:
 
- - Use a Lambda function to generate the initial FAISS index from the source data.
- - Store the generated index in S3 as an object.
- 
- - Index Updates:
-    - Trigger Lambda functions in response to events (e.g., product updates).
-    - Retrieve the current index from S3.
-    - Apply necessary updates using FAISS update functions.
-    - Store the updated index back to S3.
+**Index Initialization**:
 
-Container Deployment:
-    - During deployments, retrieve the latest index from S3. 
-    - Provision new container instances with the fetched index.
-    - Gradually switch traffic to the new containers (Green/Blue deployment).
-    - Scale up or down the number of containers as needed.
+- Use a combination of EMR and Lambda to generate the initial FAISS index from the source data. EMR processes the data normalization and preparation, while Lambda handles the final conversion to a FAISS index.
+- Store the generated index in S3 as an object.
 
-Advantages:
+**Index Updates**:
 
-Scalability: S3 provides extensive storage capacity, allowing the index to scale with the growth of data.
-Fault Tolerance: S3 ensures high availability and durability of the index, minimizing the risk of data loss.
-Efficient Updates: Lambda enables efficient and timely updates to the index, ensuring that containers always operate with the latest data.
-Seamless Deployments: Green/Blue deployment strategy ensures zero downtime during updates, maintaining uninterrupted service availability.
+- Trigger Lambda functions in response to events (e.g., product updates).
+- Retrieve the current index from S3.
+- Apply necessary updates using FAISS update functions.
+- Store the updated index back to S3.
+
+**Container Deployment**:
+
+- During deployments, retrieve the latest index from S3.
+- Provision new container instances with the fetched index.
+- Gradually switch traffic to the new containers (Green/Blue deployment).
+- Scale up or down the number of containers as needed based on demand.
+
+#### Advantages:
+
+- **Scalability**: Leveraging S3 for storage and EMR for data processing allows the system to scale with the growth of data. Partitioning the index facilitates handling larger datasets efficiently.
+  
+- **Fault Tolerance**: S3 ensures high availability and durability of the index, minimizing the risk of data loss. The integration of EMR adds another layer of resilience through its distributed computing model.
+  
+- **Efficient Updates**: Combining EMR for data preprocessing with Lambda for index updates ensures that the system can efficiently handle both large-scale data transformations and timely index updates.
+  
+- **Seamless Deployments**: The Green/Blue deployment strategy, supported by container orchestration, ensures zero downtime during updates, maintaining uninterrupted service availability.
+
 
 
 

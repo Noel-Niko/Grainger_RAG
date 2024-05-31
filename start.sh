@@ -25,7 +25,6 @@ conda config --set pip_interop_enabled True
 # Install required packages
 echo "Installing conda packages..."
 conda install -c pytorch faiss-cpu=1.7.4 mkl=2021 blas=1.0=mkl
-
 conda install -y langchain==0.1.20
 conda install -y langchain-openai==0.0.8
 conda install -y langsmith==0.1.63

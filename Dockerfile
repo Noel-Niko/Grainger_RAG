@@ -1,5 +1,5 @@
 # Use a Debian-based Python image
-FROM python:3.9
+FROM python:3.9.19
 
 SHELL ["/bin/bash", "--login", "-c"]
 
@@ -21,7 +21,7 @@ RUN bash Anaconda3-2024.02-1-Linux-x86_64.sh -b -u -p /opt/conda
 RUN rm Anaconda3-2024.02-1-Linux-x86_64.sh
 
 # Initialize Conda for bash and zsh shells, modify PATH, and create a Conda environment named 'ragEnv' with Python 3.9
-RUN /bin/bash -c "source /opt/conda/etc/profile.d/conda.sh && conda init bash && conda init zsh && export PATH=/opt/conda/bin:$PATH && conda create -n ragEnv python=3.9"
+RUN /bin/bash -c "source /opt/conda/etc/profile.d/conda.sh && conda init bash && conda init zsh && export PATH=/opt/conda/bin:$PATH && conda create -n ragEnv python=3.9.19"
 
 # Activate the Conda environment and set it as the default Python
 RUN echo "source /opt/conda/etc/profile.d/conda.sh && conda activate ragEnv" >> ~/.bashrc
@@ -55,6 +55,11 @@ COPY requirements.txt /app/requirements.txt
 RUN /opt/conda/envs/ragEnv/bin/pip install -r /app/requirements.txt
 
 ENV PYTHONPATH="/opt/conda/envs/ragEnv/lib/python3.9/site-packages"
+
+# Set environment variables for MKL
+ENV MKLROOT=/opt/conda/envs/ragEnv
+ENV LD_LIBRARY_PATH=$MKLROOT/lib:$LD_LIBRARY_PATH
+ENV DYLD_LIBRARY_PATH=$MKLROOT/lib:$DYLD_LIBRARY_PATH
 
 # Expose port
 EXPOSE 8505

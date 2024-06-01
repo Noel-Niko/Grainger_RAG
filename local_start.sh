@@ -3,8 +3,9 @@
 # Ensure Conda environment is properly initialized
 source /opt/anaconda3/etc/profile.d/conda.sh
 
-
-# Activate the Conda environment
+# Create and/or activate the Conda environment with Python version 3.9.19
+echo "Creating or updating Conda environment with Python 3.9.19..."
+conda create --name rag_env python=3.9.19 -y
 conda activate rag_env
 
 # Verify the Conda environment
@@ -29,6 +30,7 @@ conda config --set pip_interop_enabled True
 # Install required packages
 echo "Installing conda packages..."
 conda update --all -y
+conda install -y -c intel mkl
 conda install -y -c pytorch faiss-cpu=1.7.4 mkl=2021 blas=1.0=mkl
 conda install -y langchain==0.1.20
 conda install -y langchain-openai==0.0.8
@@ -36,7 +38,7 @@ conda install -y langsmith==0.1.63
 conda install -y streamlit==1.35.0
 conda install -y -c pytorch pytorch==2.2.2 torchvision torchaudio
 conda install -y -c conda-forge transformers==4.41.1
-conda install -y -c intel mkl
+
 conda install -y nltk
 conda install -y pickle
 python -m nltk.downloader stopwords
@@ -44,6 +46,20 @@ python -m nltk.downloader punkt
 
 #conda install -y pytest==8.2.1  <<< testing pkg
 #conda install -y Faker==25.2.0  <<< testing pkg
+
+
+# Set environment variables for MKL
+export MKLROOT=$(conda info --base)/envs/rag_env
+echo "MKLROOT: $MKLROOT"
+#export DYLD_LIBRARY_PATH=$MKLROOT/lib:$DYLD_LIBRARY_PATH
+export DYLD_LIBRARY_PATH=$MKLROOT/lib:/usr/local/lib:DYLD_LIBRARY_PATH
+
+echo "DYLD_LIBRARY_PATH: $DYLD_LIBRARY_PATH"
+#export LD_LIBRARY_PATH=$MKLROOT/lib:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=$MKLROOT/lib:/usr/local/lib:$LD_LIBRARY_PATH
+
+echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH"
+
 
 # Print Python version
 echo "*********************************************************Python version:"

@@ -45,7 +45,14 @@ class RAGApplication:
         self.get_vector_index()
         st.title("Retrieval-Augmented Generation (RAG) Application")
         query = st.text_input("Enter your product-based question:", value="", placeholder="")
+
+        # Using a separate session state variable to track submission
+        if 'submitted' not in st.session_state:
+            st.session_state.submitted = False
         if st.button("Submit"):
+            st.session_state.submitted = True
+
+        if st.session_state.submitted:
             self.current_query = query
             response = self.process_query(query)
             st.write("Response:", response)
@@ -56,7 +63,7 @@ class RAGApplication:
 
         logging.info(f"**************************    Searching in FAISS for {refined_query}    *******************************")
         # Search for the refined query in the FAISS index
-        context_faiss_response = self.vector_index.search_and_generate_response(refined_query, self.llm_connection, k=5)
+        context_faiss_response = self.vector_index.search_and_generate_response(refined_query, self.llm_connection, k=15)
         if context_faiss_response is None or context_faiss_response.strip() == "":
             context_faiss_response = no_matches
 

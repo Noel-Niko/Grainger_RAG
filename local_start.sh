@@ -48,24 +48,20 @@ conda install -y langsmith==0.1.63
 conda install -y streamlit==1.35.0
 conda install -y -c pytorch pytorch==2.2.2 torchvision torchaudio
 conda install -y -c conda-forge transformers==4.41.1
-conda install -y nltk
-conda install -c conda-forge dask nltk
+
+
 conda install -y langdetect
+conda install pyyaml
+conda install packaging
+
+conda install -y dask
+conda install -y -c conda-forge dask nltk
+conda install -y nltk
 python -m nltk.downloader stopwords
 python -m nltk.downloader punkt
 
 #conda install -y pytest==8.2.1  <<< testing pkg
 #conda install -y Faker==25.2.0  <<< testing pkg
-
-
-# Set environment variables for MKL
-export MKLROOT=$(conda info --base)/envs/rag_env
-echo "MKLROOT: $MKLROOT"
-export DYLD_LIBRARY_PATH=$MKLROOT/lib:/usr/local/lib:DYLD_LIBRARY_PATH
-echo "DYLD_LIBRARY_PATH: $DYLD_LIBRARY_PATH"
-export LD_LIBRARY_PATH=$MKLROOT/lib:/usr/local/lib:$LD_LIBRARY_PATH
-echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH"
-
 
 # Print Python version
 echo "*********************************************************Python version:"

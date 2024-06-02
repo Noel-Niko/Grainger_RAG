@@ -6,10 +6,9 @@ from dask.base import normalize_token
 import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
-from fugashi import Tagger
+# from fugashi import Tagger
 from langdetect import detect_langs
 from dask import delayed
-
 
 nltk.download('stopwords')
 nltk.download('punkt')
@@ -33,12 +32,13 @@ def normalize_text(text, stop_words=None):
             text = text.lower()
             tokens = word_tokenize(text)
             stop_words = set(stopwords.words('spanish'))
-        elif primary_language == 'ja':
-            # Japanese normalization
-            tagger = Tagger("-Oyomi")
-            tokens = [word.surface for word in tagger.parse(text).split()]
-            # TODO: NO package found for japanese stop words
-            stop_words = set()
+        # Tagger library has missing dependencies in the source
+        # elif primary_language == 'ja':
+        #     # Japanese normalization
+        #     tagger = Tagger("-Oyomi")
+        #     tokens = [word.surface for word in tagger.parse(text).split()]
+        #     # TODO: NO package found for japanese stop words
+        #     stop_words = set()
         else:
             logging.warning(f"Unsupported language: {primary_language}. No normalization applied.")
             return text
@@ -62,8 +62,13 @@ class NormalizeTextWrapper:
         return (NormalizeTextWrapper.__name__, normalize_token(self.func))
 
 
-# Wrap the normalize_text function
-normalize_text_wrapper = NormalizeTextWrapper(normalize_text)
+@delayed
+def normalize_text_delayed(text, stop_words=None):
+    return normalize_text(text, stop_words)
+
+
+def apply_normalize_text(series):
+    return series.map(lambda x: normalize_text_delayed(x))
 
 
 class DataPreprocessor:
@@ -95,7 +100,8 @@ class DataPreprocessor:
 
         # Process the products file in chunks using Dask
         logging.info("Processing products file in chunks using Dask")
-        products_ddf = dd.read_parquet(products_file)
+        # TODO: use .sample(frac=0.001) to decrease file size for testing
+        products_ddf = dd.read_parquet(products_file).sample(frac=0.001)
 
         try:
             # Data Cleaning and Normalization
@@ -111,14 +117,12 @@ class DataPreprocessor:
             logging.info("Partitioning the Dask DataFrame.")
             products_ddf = products_ddf.repartition(npartitions=10)
 
-            # Apply normalize_text to each partition separately
-            num_partitions = products_ddf.npartitions
-            for i in range(num_partitions):
-                logging.info(f"Apply normalize_text to {i} of {len(num_partitions)} ")
-                partition = products_ddf.get_partition(i).compute()  # Convert to Pandas DataFrame
-                partition['combined_text'] = partition['combined_text'].apply(normalize_text)  # Apply normalize_text
-                products_ddf = products_ddf.set_partitions(
-                    [dd.from_pandas(partition, npartitions=1)])  # Convert back to Dask DataFrame
+            # Normalizing the text
+            logging.info("Partitioning and normalizing products text.")
+            normalize_text_wrapper_instance = NormalizeTextWrapper(apply_normalize_text)
+
+            products_ddf['combined_text'] = products_ddf['combined_text'].map_partitions(
+                normalize_text_wrapper_instance, meta=('combined_text', 'object'))
 
             # Convert Dask DataFrame back to Pandas DataFrame
             logging.info("Converting Dask data frame back to pandas dataframe.")

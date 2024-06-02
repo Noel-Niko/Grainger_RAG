@@ -26,11 +26,21 @@ pip install -r requirements.txt
 ## Add conda-forge channel
 conda config --add channels conda-forge
 conda config --set pip_interop_enabled True
+conda config --set always_yes True
 
 # Install required packages
 echo "Installing conda packages..."
-conda update --all -y
+#conda update --all -y
 conda install -y -c intel mkl
+
+# Set environment variables for MKL
+export MKLROOT=$(conda info --base)/envs/rag_env
+echo "MKLROOT: $MKLROOT"
+export DYLD_LIBRARY_PATH=$MKLROOT/lib:/usr/local/lib:DYLD_LIBRARY_PATH
+echo "DYLD_LIBRARY_PATH: $DYLD_LIBRARY_PATH"
+export LD_LIBRARY_PATH=$MKLROOT/lib:/usr/local/lib:$LD_LIBRARY_PATH
+echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH"
+
 conda install -y -c pytorch faiss-cpu=1.7.4 mkl=2021 blas=1.0=mkl
 conda install -y langchain==0.1.20
 conda install -y langchain-openai==0.0.8
@@ -38,9 +48,9 @@ conda install -y langsmith==0.1.63
 conda install -y streamlit==1.35.0
 conda install -y -c pytorch pytorch==2.2.2 torchvision torchaudio
 conda install -y -c conda-forge transformers==4.41.1
-
 conda install -y nltk
-conda install -y pickle
+conda install -c conda-forge dask nltk
+conda install -y langdetect
 python -m nltk.downloader stopwords
 python -m nltk.downloader punkt
 
@@ -51,13 +61,9 @@ python -m nltk.downloader punkt
 # Set environment variables for MKL
 export MKLROOT=$(conda info --base)/envs/rag_env
 echo "MKLROOT: $MKLROOT"
-#export DYLD_LIBRARY_PATH=$MKLROOT/lib:$DYLD_LIBRARY_PATH
 export DYLD_LIBRARY_PATH=$MKLROOT/lib:/usr/local/lib:DYLD_LIBRARY_PATH
-
 echo "DYLD_LIBRARY_PATH: $DYLD_LIBRARY_PATH"
-#export LD_LIBRARY_PATH=$MKLROOT/lib:$LD_LIBRARY_PATH
 export LD_LIBRARY_PATH=$MKLROOT/lib:/usr/local/lib:$LD_LIBRARY_PATH
-
 echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH"
 
 

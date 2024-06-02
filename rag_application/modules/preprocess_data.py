@@ -1,3 +1,6 @@
+import re
+
+import pandas as pd
 import os
 import logging
 import pandas as pd
@@ -18,65 +21,88 @@ logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
 
-def normalize_text(text, stop_words=None):
-    if isinstance(text, str):
-        detected_languages = detect_langs(text)
-        primary_language = detected_languages[0].lang
-        if primary_language == 'en':
-            # English normalization
-            text = text.lower()
-            tokens = word_tokenize(text)
-            stop_words = set(stopwords.words('english'))
-        elif primary_language == 'es':
-            # Spanish normalization
-            text = text.lower()
-            tokens = word_tokenize(text)
-            stop_words = set(stopwords.words('spanish'))
-        # Tagger library has missing dependencies in the source
-        # elif primary_language == 'ja':
-        #     # Japanese normalization
-        #     tagger = Tagger("-Oyomi")
-        #     tokens = [word.surface for word in tagger.parse(text).split()]
-        #     # TODO: NO package found for japanese stop words
-        #     stop_words = set()
-        else:
-            logging.warning(f"Unsupported language: {primary_language}. No normalization applied.")
-            return text
-
-        filtered_tokens = [token for token in tokens if token not in stop_words]
-        normalized_text = ' '.join(filtered_tokens)
-        return normalized_text
-    else:
-        logging.error("Expected a string while normalizing text.")
-        raise ValueError("Expected a string")
-
-
-class NormalizeTextWrapper:
-    def __init__(self, func):
-        self.func = func
-
-    def __call__(self, *args, **kwargs):
-        return self.func(*args, **kwargs)
-
-    def __dask_tokenize__(self):
-        return (NormalizeTextWrapper.__name__, normalize_token(self.func))
-
-
-@delayed
-def normalize_text_delayed(text, stop_words=None):
-    return normalize_text(text, stop_words)
-
-
-def apply_normalize_text(series):
-    return series.map(lambda x: normalize_text_delayed(x))
-
-
 class DataPreprocessor:
     def __init__(self):
         self.examples_df = None
         self.products_df = None
         self.sources_df = None
         self.preprocessing_complete = False
+
+    def normalize_text(self, text):
+        logging.info("Normalizing text")
+        if isinstance(text, str):
+            text = text.lower()
+            tokens = nltk.word_tokenize(text)
+            stop_words = set(stopwords.words('english'))
+            filtered_tokens = [token for token in tokens if token not in stop_words]
+            normalized_text = ' '.join(filtered_tokens)
+            return normalized_text
+        else:
+            logging.error("Expected a string while normalizing text.")
+            raise ValueError("Expected a string")
+
+    #  @staticmethod
+    # def normalize_text(text, stop_words=None):
+    #     if isinstance(text, str):
+    #         detected_languages = detect_langs(text)
+    #         primary_language = detected_languages[0].lang
+    #         if primary_language == 'en':
+    #             # English normalization
+    #             text = text.lower()
+    #             tokens = word_tokenize(text)
+    #             stop_words = set(stopwords.words('english'))
+    #         elif primary_language == 'es':
+    #             # Spanish normalization
+    #             text = text.lower()
+    #             tokens = word_tokenize(text)
+    #             stop_words = set(stopwords.words('spanish'))
+    #         # Tagger library has missing dependencies in the source
+    #         # elif primary_language == 'ja':
+    #         #     # Japanese normalization
+    #         #     tagger = Tagger("-Oyomi")
+    #         #     tokens = [word.surface for word in tagger.parse(text).split()]
+    #         #     # TODO: NO package found for japanese stop words
+    #         #     stop_words = set()
+    #         else:
+    #             logging.warning(f"Unsupported language: {primary_language}. No normalization applied.")
+    #             return text
+    #
+    #         filtered_tokens = [token for token in tokens if token not in stop_words]
+    #         normalized_text = ' '.join(filtered_tokens)
+    #         return normalized_text
+    #     else:
+    #         logging.error("Expected a string while normalizing text.")
+    #         raise ValueError("Expected a string")
+    # @staticmethod
+    # def normalize_text(text, stop_words=None):
+    #     if isinstance(text, str):
+    #         logging.debug(f"Processing text: {text[:50]}...")  # Log the first 50 characters of the text
+    #         detected_languages = detect_langs(text)
+    #         primary_language = detected_languages[0].lang
+    #         logging.debug(f"Detected language: {primary_language}")  # Log the detected language
+    #
+    #         if primary_language == 'en':
+    #             # English normalization
+    #             text = text.lower()
+    #             tokens = word_tokenize(text)
+    #             stop_words = set(stopwords.words('english'))
+    #         elif primary_language == 'es':
+    #             # Spanish normalization
+    #             text = text.lower()
+    #             tokens = word_tokenize(text)
+    #             stop_words = set(stopwords.words('spanish'))
+    #         else:
+    #             logging.warning(f"Unsupported language: {primary_language}. No normalization applied.")
+    #             return text
+    #
+    #         filtered_tokens = [token for token in tokens if token not in stop_words]
+    #         normalized_text = ' '.join(filtered_tokens)
+    #         logging.debug(
+    #             f"Normalized text: {normalized_text[:50]}...")  # Log the first 50 characters of the normalized text
+    #         return normalized_text
+    #     else:
+    #         logging.error("Expected a string while normalizing text.")
+    #         raise ValueError("Expected a string")
 
     def preprocess_data(self):
         logging.info("Starting data preprocessing...")
@@ -89,48 +115,46 @@ class DataPreprocessor:
 
         # Load the dataset files
         self.examples_df = pd.read_parquet(examples_file)
+        self.products_df = pd.read_parquet(products_file)
         self.sources_df = pd.read_csv(sources_file)
 
-        logging.info("Loaded Examples and Sources DataFrames shapes:")
+        logging.info("Loaded DataFrames shapes:")
         logging.info(f"Examples DataFrame shape: {self.examples_df.shape}")
+        logging.info(f"Products DataFrame shape: {self.products_df.shape}")
         logging.info(f"Sources DataFrame shape: {self.sources_df.shape}")
-        print("Loaded Examples and Sources DataFrames shapes:")
+        print("Loaded DataFrames shapes:")
         print("Examples DataFrame shape:", self.examples_df.shape)
+        print("Products DataFrame shape:", self.products_df.shape)
         print("Sources DataFrame shape:", self.sources_df.shape)
 
-        # Process the products file in chunks using Dask
-        logging.info("Processing products file in chunks using Dask")
-        # TODO: use .sample(frac=0.001) to decrease file size for testing
-        products_ddf = dd.read_parquet(products_file).sample(frac=0.001)
-
         try:
-            # Data Cleaning and Normalization
-            logging.info("Data cleaning and initialization for products.")
-            products_ddf = products_ddf.dropna().drop_duplicates()
-            products_ddf['combined_text'] = (products_ddf['product_title']
-                                             + " " + products_ddf['product_description']
-                                             + " " + products_ddf['product_bullet_point']
-                                             + " " + products_ddf['product_brand'])
+            # Data Cleaning
+            self.examples_df = self.examples_df.dropna().drop_duplicates()
+            # TODO: REDUCING THE SIZE OF THE FILE FOR INTEGRATION TESTING
+            self.products_df = self.products_df.dropna().drop_duplicates().sample(frac=0.001)
 
-            # Partition the Dask DataFrame
-            # Can adjust npartitions as needed
-            logging.info("Partitioning the Dask DataFrame.")
-            products_ddf = products_ddf.repartition(npartitions=10)
+            self.sources_df = self.sources_df.dropna().drop_duplicates()
 
-            # Normalizing the text
-            logging.info("Partitioning and normalizing products text.")
-            normalize_text_wrapper_instance = NormalizeTextWrapper(apply_normalize_text)
+            # Feature Extraction
+            self.products_df['combined_text'] = (self.products_df['product_title']
+                                                 + " " + self.products_df['product_description']
+                                                 + " " + self.products_df['product_bullet_point']
+                                                 + " " + self.products_df['product_brand'])
+            # Normalize combined_text
+            # self.products_df['combined_text'] = self.products_df['combined_text'].astype(str)
+            # self.products_df['combined_text'] = self.products_df['combined_text'].apply(self.normalize_text)
 
-            products_ddf['combined_text'] = products_ddf['combined_text'].map_partitions(
-                normalize_text_wrapper_instance, meta=('combined_text', 'object'))
+            # Ensure combined_text is of type string
+            self.products_df['combined_text'] = self.products_df['combined_text'].astype(str)
 
-            # Convert Dask DataFrame back to Pandas DataFrame
-            logging.info("Converting Dask data frame back to pandas dataframe.")
-            self.products_df = products_ddf.compute()
+            # Check the first few rows to confirm the dtype is indeed 'object' (which represents strings in pandas)
+            print(self.products_df['combined_text'].head())
 
-            logging.info("Processed Products DataFrame shape:")
-            logging.info(f"Products DataFrame shape: {self.products_df.shape}")
-            print("Processed Products DataFrame shape:", self.products_df.shape)
+            # Apply the normalize_text function
+            try:
+                self.products_df['combined_text'] = self.products_df['combined_text'].apply(DataPreprocessor.normalize_text)
+            except Exception as e:
+                logging.error(f"Exception occurred during normalization: {e}")
 
             base_dir = os.path.dirname(os.path.abspath(__file__))
             output_dir = os.path.join(base_dir, 'shopping_queries_dataset')
@@ -183,7 +207,6 @@ class DataPreprocessor:
 
     def is_preprocessing_complete(self):
         return self.preprocessing_complete
-
 
 if __name__ == "__main__":
     preprocessor = DataPreprocessor()

@@ -31,7 +31,9 @@ conda config --set always_yes True
 # Install required packages
 echo "Installing conda packages..."
 #conda update --all -y
-conda install -y -c intel mkl
+conda install -y -c intel mkl=2023.2.2=intel_8
+conda install -y -c intel tbb=2021.10.0=intel_49546
+
 
 # Set environment variables for MKL
 export MKLROOT=$(conda info --base)/envs/rag_env
@@ -41,7 +43,8 @@ echo "DYLD_LIBRARY_PATH: $DYLD_LIBRARY_PATH"
 export LD_LIBRARY_PATH=$MKLROOT/lib:/usr/local/lib:$LD_LIBRARY_PATH
 echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH"
 
-conda install -y -c pytorch faiss-cpu=1.7.4 mkl=2021 blas=1.0=mkl
+conda install -y -c pytorch faiss-cpu=1.7.4 mkl=2023.2.2=intel_8 blas=1.0=mkl
+
 conda install -y langchain==0.1.20
 conda install -y langchain-openai==0.0.8
 conda install -y langsmith==0.1.63

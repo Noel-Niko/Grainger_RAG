@@ -8,8 +8,6 @@ from transformers import AutoTokenizer, AutoModel
 import faiss
 from typing import Tuple, List
 import logging
-import dask.dataframe as dd
-
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -74,13 +72,11 @@ class VectorIndex:
         """Loads the processed products data with error handling."""
         print("Loading preprocessed products.")
         logging.info("Loading preprocessed products.")
+
         try:
-            # NOTE: Dask computations are lazy and .compute is needed to place the data in memory if required.
-            # NOTE: After performing expensive computations, you can use persist to cache the results.
-            # This is useful if performing multiple operations on the same data.
-            # E.g. self.products_df = self.products_df.persist()
-            self.products_df = dd.read_parquet(self.products_file, blocksize='64MB').set_index('product_id',
-                                                                                               compute=False)
+            self.products_df = pd.read_parquet(self.products_file)
+            self.products_df.set_index('product_id', inplace=True)
+            print(self.products_df.shape)
             logging.info("Completed loading preprocessed products.")
             print("Completed loading preprocessed products.")
         except FileNotFoundError:

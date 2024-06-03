@@ -38,9 +38,11 @@ conda install -y -c intel tbb=2021.10.0=intel_49546
 # Set environment variables for MKL
 export MKLROOT=$(conda info --base)/envs/rag_env
 echo "MKLROOT: $MKLROOT"
-export DYLD_LIBRARY_PATH=$MKLROOT/lib:/usr/local/lib:DYLD_LIBRARY_PATH
+export MKLROOT=$(conda info --base)
+export DYLD_LIBRARY_PATH=$MKLROOT/envs/rag_env/lib:/usr/local/lib:$DYLD_LIBRARY_PATH
 echo "DYLD_LIBRARY_PATH: $DYLD_LIBRARY_PATH"
-export LD_LIBRARY_PATH=$MKLROOT/lib:/usr/local/lib:$LD_LIBRARY_PATH
+
+export LD_LIBRARY_PATH=$MKLROOT/envs/rag_env/lib:/usr/local/lib:LD_LIBRARY_PATH
 echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH"
 
 conda install -y -c pytorch faiss-cpu=1.7.4 mkl=2023.2.2=intel_8 blas=1.0=mkl

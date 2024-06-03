@@ -5,7 +5,7 @@ source /opt/anaconda3/etc/profile.d/conda.sh
 
 PYTHON_VERSION="3.9.19"
 
-conda env remove --name rag_env --all --yes
+conda env remove --name rag_env --yes
 
 echo "Creating or updating Conda environment with Python $PYTHON_VERSION..."
 conda create --name rag_env python=$PYTHON_VERSION -y
@@ -27,49 +27,84 @@ conda config --set always_yes True
 
 # Install required packages
 echo "Installing conda packages..."
-conda install -y -c intel mkl==2021
+#conda install -c intel mkl=2021.4
+#conda install -c conda-forge mkl-service
 
 # Set up MKL paths
-export MKLROOT="${CONDA_PREFIX}/lib"
-export DYLD_LIBRARY_PATH="$MKLROOT/lib":$DYLD_LIBRARY_PATH
-export LD_LIBRARY_PATH=$MKLROOT/lib:$LD_LIBRARY_PATH
-export DYLD_FALLBACK_LIBRARY_PATH="${CONDA_PREFIX}/lib"
-
+#export MKLROOT="${CONDA_PREFIX}/lib"
+#export DYLD_LIBRARY_PATH="$MKLROOT/lib":$DYLD_LIBRARY_PATH
+#export LD_LIBRARY_PATH=$MKLROOT/lib:$LD_LIBRARY_PATH
+#export DYLD_FALLBACK_LIBRARY_PATH="${CONDA_PREFIX}/lib"
+#
 source ~/.bashrc
 source ~/.zshrc
-
-#conda install -y -c anaconda numpy==1.26.4 mkl-service
-conda install -y -c conda-forge numpy==1.26.4 mkl-service
+conda install -c pytorch faiss-cpu=1.7.4
+#conda install -c pytorch faiss-cpu
+#conda install -c conda-forge numpy numpy=1.21.2
+conda install -c conda-forge numpy
 
 conda install pandas==2.2.1
 conda install scikit-learn==1.5.0
-
-export MKLROOT="${CONDA_PREFIX}/lib"
-export DYLD_LIBRARY_PATH="$MKLROOT/lib":$DYLD_LIBRARY_PATH
-export LD_LIBRARY_PATH=$MKLROOT/lib:$LD_LIBRARY_PATH
-source ~/.bashrc
-source ~/.zshrc
-
-
-conda install -y -c pytorch faiss-cpu=1.7.3 mkl
-
-
 conda install -y langchain==0.1.20
 conda install -y langchain-openai==0.0.8
-conda install -y langsmith==0.1.63
+conda install -y langchain-community==0.0.19
+conda install -y langsmith
 conda install -y streamlit==1.35.0
 conda install -y -c pytorch pytorch==2.2.2 torchvision torchaudio
-#conda install -y -c conda-forge transformers==4.41.1
 conda install -y -c huggingface transformers
 conda install -y -c conda-forge huggingface_hub
 conda install -y langdetect
 conda install pyyaml
 conda install packaging
-#conda install -y dask
-#conda install -y -c conda-forge dask nltk
 conda install -y nltk
+conda install pyarrow
+conda install fastparquet
 python -m nltk.downloader stopwords
 python -m nltk.downloader punkt
+
+
+
+#
+##conda install -y -c anaconda numpy==1.26.4 mkl-service
+#conda install -y -c pytorch faiss-cpu=1.7.3 mkl
+#conda install -y -c intel mkl
+#conda install -y -c conda-forge numpy mkl-service
+#
+#
+### Set up MKL paths
+##export MKLROOT="${CONDA_PREFIX}/lib"
+##export DYLD_LIBRARY_PATH="$MKLROOT/lib":$DYLD_LIBRARY_PATH
+##export LD_LIBRARY_PATH=$MKLROOT/lib:$LD_LIBRARY_PATH
+##export DYLD_FALLBACK_LIBRARY_PATH="${CONDA_PREFIX}/lib"
+###
+##source ~/.bashrc
+##source ~/.zshrc
+#
+#conda install pandas==2.2.1
+#conda install scikit-learn==1.5.0
+##
+##export MKLROOT="${CONDA_PREFIX}/lib"
+##export DYLD_LIBRARY_PATH="$MKLROOT/lib":$DYLD_LIBRARY_PATH
+##export LD_LIBRARY_PATH=$MKLROOT/lib:$LD_LIBRARY_PATH
+##source ~/.bashrc
+##source ~/.zshrc
+#
+#conda install -y langchain==0.1.20
+#conda install -y langchain-openai==0.0.8
+#conda install -y langsmith==0.1.63
+#conda install -y streamlit==1.35.0
+#conda install -y -c pytorch pytorch==2.2.2 torchvision torchaudio
+##conda install -y -c conda-forge transformers==4.41.1
+#conda install -y -c huggingface transformers
+#conda install -y -c conda-forge huggingface_hub
+#conda install -y langdetect
+#conda install pyyaml
+#conda install packaging
+##conda install -y dask
+##conda install -y -c conda-forge dask nltk
+#conda install -y nltk
+#python -m nltk.downloader stopwords
+#python -m nltk.downloader punkt
 
 #conda install -y pytest==8.2.1  <<< testing pkg
 #conda install -y Faker==25.2.0  <<< testing pkg

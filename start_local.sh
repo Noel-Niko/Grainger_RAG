@@ -1,6 +1,17 @@
 #!/bin/bash
 
-cd /app
+# Print Python version
+echo "*********************************************************Python version:"
+python --version
+
+# Print faiss-cpu version
+echo "*********************************************************faiss-cpu version:"
+python -c 'import faiss; print(faiss.__version__)'
+
+
+#TODO: *****ADJUST FOR YOUR DEVICE***** for running locally only:
+# Set the project root directory as PYTHONPATH
+export PYTHONPATH="/Users/noel_niko/PycharmProjects/grainger_rag:$PYTHONPATH"
 
 # Run the Preprocessing file
 echo "********************************************************* Preprocessing Data...:"

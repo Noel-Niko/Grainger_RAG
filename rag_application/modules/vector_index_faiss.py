@@ -72,45 +72,6 @@ class VectorIndex:
 
         return cls._instance
 
-
-    # @classmethod
-    # def get_instance(cls, **kwargs):
-    #     """Static access method to get the singleton instance, enforcing required arguments."""
-    #     if cls._instance is None:
-    #         logging.info("Loading vector from pickle file...")
-    #         pickle_file = kwargs.get('pickle_file', 'vector_index.pkl')
-    #         products_file = kwargs.get('products_file', '')
-    #
-    #         log_creation_time(pickle_file)
-    #         if products_file:
-    #             logging.info(f"{log_creation_time(products_file)}")
-    #
-    #         # Check if 'products_file' is a string
-    #         if not isinstance(products_file, str):
-    #             print("'products_file' argument must be a string")
-    #             logging.error("'products_file' argument must be a string")
-    #             raise TypeError("'products_file' argument must be a string")
-    #
-    #         if os.path.exists(pickle_file):
-    #             logging.info(f"Loading VectorIndex instance from {pickle_file}")
-    #             with open(pickle_file, 'rb') as file:
-    #                 cls._instance = pickle.load(file)
-    #             logging.info("VectorIndex instance loaded from pickle file.")
-    #         else:
-    #             logging.info("Creating new instance of VectorIndex...")
-    #             cls._instance = cls(products_file=products_file)
-    #             try:
-    #                 cls._instance.verify_or_wait_for_file_creation()
-    #                 cls._instance.load_processed_products()
-    #                 cls._instance.create_faiss_index()
-    #                 with open(pickle_file, 'wb') as file:
-    #                     pickle.dump(cls._instance, file)
-    #                 logging.info("VectorIndex instance created and serialized to pickle file.")
-    #             except Exception as e:
-    #                 logging.error(f"Failed to initialize the FAISS index: {str(e)}")
-    #                 raise RuntimeError(f"Error initializing the FAISS index: {str(e)}")
-    #         return cls._instance
-
     def __init__(self, products_file=None, nlist=100, m=16, batch_size=32):
         self.products_df = None
         self.llm = None

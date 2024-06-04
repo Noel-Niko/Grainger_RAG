@@ -100,7 +100,7 @@ THEN - re-run the application on a NON-apple silicone device
 IF - you continue to experience 'hanging' or infinite looping, or receive a segmentation fault error.
 
 THEN - the cause is likely the mismatch between faiss-cpu, intel mkl, pytorch, python, numbpy, and or using apple silicon  (For example see [here](https://numpy.org/devdocs/user/troubleshooting-importerror.html).)
-  - be aware: Faiss 1.7.3 is not compatible with Python >=3.10 or the corresponding pytorch for 3.9
+  - be aware: Faiss 1.7.3 is not compatible with Python >=3.10 or the corresponding pytorch for 3.9. USE PYTHON 3.8
   - ensure your local is running in a conda env with the versions as directed above
 
 

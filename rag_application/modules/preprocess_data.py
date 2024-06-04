@@ -33,18 +33,13 @@ class DataPreprocessor:
         if isinstance(text, str):
             text = text.lower()
             tokens = nltk.word_tokenize(text)
-
             english_stop_words = set(stopwords.words('english'))
             spanish_stop_words = set(stopwords.words('spanish'))
             japanese_stop_words = set(stopwords.words('japanese'))
-
             # Combine English, Spanish, and Japanese stopwords
             combined_stop_words = english_stop_words.union(spanish_stop_words).union(japanese_stop_words)
-
-            filtered_tokens = [token for token in tokens if token not in combined_stop_words]
-
-            stop_words = set(stopwords.words('english'))
-            filtered_tokens = [token for token in tokens if token not in stop_words]
+            # filtered_tokens = [token for token in tokens if token not in combined_stop_words]
+            filtered_tokens = [token for token in tokens if token not in english_stop_words]
             normalized_text = ' '.join(filtered_tokens)
             return normalized_text
         else:

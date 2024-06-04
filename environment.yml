@@ -1,0 +1,15 @@
+name: simple_retrieval_augmented_generation_env
+dependencies:
+  - pandas
+  - nltk
+  - numpy
+  - transformers
+  - pytorch
+  - scikit-learn
+  - langchain
+  - langchain-openai
+  - langsmith
+  - streamlit
+  - langdetect
+  - pyyaml
+  - packaging

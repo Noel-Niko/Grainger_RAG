@@ -3,10 +3,18 @@ import re
 import pandas as pd
 import os
 import logging
+import pandas as pd
+# import dask.dataframe as dd
+# from dask.base import normalize_token
 import nltk
 from nltk.corpus import stopwords
-nltk.download('stopwords')
-nltk.download('punkt')
+# from nltk.tokenize import word_tokenize
+# # from fugashi import Tagger
+# from langdetect import detect_langs
+# from dask import delayed
+from nltk import download
+download('stopwords')
+download('punkt')
 
 # Configure logging
 logging.basicConfig(level=logging.INFO,
@@ -20,13 +28,19 @@ class DataPreprocessor:
         self.sources_df = None
         self.preprocessing_complete = False
 
+
     def normalize_text(self, text):
         logging.info("Normalizing text")
         if isinstance(text, str):
             text = text.lower()
             tokens = nltk.word_tokenize(text)
-            stop_words = set(stopwords.words('english'))
-            filtered_tokens = [token for token in tokens if token not in stop_words]
+            english_stop_words = set(stopwords.words('english'))
+            spanish_stop_words = set(stopwords.words('spanish'))
+            japanese_stop_words = set(stopwords.words('japanese'))
+            # Combine English, Spanish, and Japanese stopwords
+            combined_stop_words = english_stop_words.union(spanish_stop_words).union(japanese_stop_words)
+            # filtered_tokens = [token for token in tokens if token not in combined_stop_words]
+            filtered_tokens = [token for token in tokens if token not in english_stop_words]
             normalized_text = ' '.join(filtered_tokens)
             return normalized_text
         else:
@@ -65,11 +79,24 @@ class DataPreprocessor:
             self.sources_df = self.sources_df.dropna().drop_duplicates()
 
             # Feature Extraction
+            logging.info("Creating combined_text feature.")
             self.products_df['combined_text'] = (self.products_df['product_title']
                                                  + " " + self.products_df['product_description']
-                                                 + " " + self.products_df['product_bullet_point'])
-            # Normalize combined_text
-            self.products_df['combined_text'] = self.products_df['combined_text'].apply(self.normalize_text)
+                                                 + " " + self.products_df['product_bullet_point']
+                                                 + " " + self.products_df['product_brand'])
+
+            # Apply the normalize_text function
+            try:
+                # Normalize combined_text
+                logging.info("Normalizing combined_text.")
+                self.products_df['combined_text'] = self.products_df['combined_text'].astype(str)
+
+                # Check the first few rows to confirm the dtype is indeed 'object' (which represents strings in pandas)
+                logging.info(self.products_df['combined_text'].head())
+                print(self.products_df['combined_text'].head())
+            except Exception as e:
+                logging.error(f"Exception occurred during normalization: {e}")
+
             base_dir = os.path.dirname(os.path.abspath(__file__))
             output_dir = os.path.join(base_dir, 'shopping_queries_dataset')
             output_files = {
@@ -87,8 +114,10 @@ class DataPreprocessor:
 
                 if os.path.exists(file_path):
                     os.remove(file_path)
+                    logging.info(f"The file {file_path} has been deleted.")
                     print(f"The file {file_path} has been deleted.")
                 else:
+                    logging.info(f"The file {file_path} does not exist.")
                     print(f"The file {file_path} does not exist.")
 
                 if df_name == 'sources':
@@ -100,7 +129,7 @@ class DataPreprocessor:
                     logging.info(f"Saving file to  {file_path}")
                     df.to_parquet(file_path)
 
-            logging.info("Data preprocessing completed successfully.")
+            logging.info("Data preprocessing files saved.")
 
         except FileNotFoundError:
             logging.error(f"Error: One or more required files were not found. Please check the file paths.")

@@ -1,6 +1,8 @@
 import os
 import pickle
 import time
+from datetime import datetime
+
 import pandas as pd
 import numpy as np
 import transformers
@@ -8,9 +10,14 @@ from transformers import AutoTokenizer, AutoModel
 import faiss
 from typing import Tuple, List
 import logging
-# from preprocess_data import DataPreprocessor
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+
+def log_creation_time(file_path):
+    ctime = os.path.getctime(file_path)
+    creation_time = datetime.fromtimestamp(ctime).strftime('%Y-%m-%d %H:%M:%S')
+    print(f"File '{file_path}' was created on {creation_time}")
 
 
 class VectorIndex:
@@ -27,22 +34,26 @@ class VectorIndex:
     @classmethod
     def get_instance(cls, **kwargs):
         """Static access method to get the singleton instance, enforcing required arguments."""
+        logging.info("Entering get_instance method")
         if cls._instance is None:
-            logging.info("Loading vector from pickle file...")
+            logging.info("Instance is None, creating new instance")
             pickle_file = kwargs.get('pickle_file', 'vector_index.pkl')
             products_file = kwargs.get('products_file', '')
 
             # Check if 'products_file' is a string
             if not isinstance(products_file, str):
-                print("'products_file' argument must be a string")
                 logging.error("'products_file' argument must be a string")
                 raise TypeError("'products_file' argument must be a string")
 
             if os.path.exists(pickle_file):
                 logging.info(f"Loading VectorIndex instance from {pickle_file}")
-                with open(pickle_file, 'rb') as file:
-                    cls._instance = pickle.load(file)
-                logging.info("VectorIndex instance loaded from pickle file.")
+                try:
+                    with open(pickle_file, 'rb') as file:
+                        cls._instance = pickle.load(file)
+                    logging.info("VectorIndex instance loaded from pickle file.")
+                except Exception as e:
+                    logging.error(f"Failed to load VectorIndex from pickle file: {e}")
+                    raise
             else:
                 logging.info("Creating new instance of VectorIndex...")
                 cls._instance = cls(products_file=products_file)
@@ -56,7 +67,10 @@ class VectorIndex:
                 except Exception as e:
                     logging.error(f"Failed to initialize the FAISS index: {str(e)}")
                     raise RuntimeError(f"Error initializing the FAISS index: {str(e)}")
-            return cls._instance
+        else:
+            logging.info("Using existing instance of VectorIndex")
+
+        return cls._instance
 
     def __init__(self, products_file=None, nlist=100, m=16, batch_size=32):
         self.products_df = None
@@ -73,9 +87,11 @@ class VectorIndex:
         """Loads the processed products data with error handling."""
         print("Loading preprocessed products.")
         logging.info("Loading preprocessed products.")
+
         try:
             self.products_df = pd.read_parquet(self.products_file)
             self.products_df.set_index('product_id', inplace=True)
+            print(self.products_df.shape)
             logging.info("Completed loading preprocessed products.")
             print("Completed loading preprocessed products.")
         except FileNotFoundError:
@@ -394,6 +410,7 @@ class VectorIndex:
         else:
             logging.error(f"File {products_file} not found after {max_retries * wait_time} seconds.")
             raise FileNotFoundError(f"File {products_file} not found after {max_retries * wait_time} seconds.")
+
 
 if __name__ == "__main__":
     try:

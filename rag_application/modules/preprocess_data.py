@@ -4,14 +4,8 @@ import pandas as pd
 import os
 import logging
 import pandas as pd
-# import dask.dataframe as dd
-# from dask.base import normalize_token
 import nltk
 from nltk.corpus import stopwords
-# from nltk.tokenize import word_tokenize
-# # from fugashi import Tagger
-# from langdetect import detect_langs
-# from dask import delayed
 from nltk import download
 download('stopwords')
 download('punkt')
@@ -39,8 +33,7 @@ class DataPreprocessor:
             japanese_stop_words = set(stopwords.words('japanese'))
             # Combine English, Spanish, and Japanese stopwords
             combined_stop_words = english_stop_words.union(spanish_stop_words).union(japanese_stop_words)
-            # filtered_tokens = [token for token in tokens if token not in combined_stop_words]
-            filtered_tokens = [token for token in tokens if token not in english_stop_words]
+            filtered_tokens = [token for token in tokens if token not in combined_stop_words]
             normalized_text = ' '.join(filtered_tokens)
             return normalized_text
         else:
@@ -73,8 +66,8 @@ class DataPreprocessor:
         try:
             # Data Cleaning
             self.examples_df = self.examples_df.dropna().drop_duplicates()
-            # TODO: REDUCING THE SIZE OF THE FILE FOR INTEGRATION TESTING
-            self.products_df = self.products_df.dropna().drop_duplicates().sample(frac=0.001)
+            # TODO: REDUCING THE SIZE OF THE FILE FOR INTEGRATION TESTING  - .sample(frac=0.1)
+            self.products_df = self.products_df.dropna().drop_duplicates()
 
             self.sources_df = self.sources_df.dropna().drop_duplicates()
 

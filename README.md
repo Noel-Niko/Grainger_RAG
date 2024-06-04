@@ -55,14 +55,16 @@
 
 ### LOCAL INSTALL AND RUN
   1. Obtain and update constants.py with api key  
-  2. Create a local conda env named: rag_env
+  2. Create a local conda env with python 3.10
   3. Download https://github.com/amazon-science/esci-data/blob/main/shopping_queries_dataset/shopping_queries_dataset_products.parquet
       - Place it in BOTH:
           - rag_application/modules/shopping_queries_dataset
           - rag_application/shopping_queries_dataset
-  4. Update local_start.sh with your path: export PYTHONPATH="
+  4. Install the required libraries into your conda environment
+      - pip install faiss-cpu
+      - conda install pandas nltk numpy transformers pytorch scikit-learn langchain langchain-openai langsmith streamlit langdetect pyyaml packaging
   5. The size of the products_df data frame can be reduced for speed of processing for test and demo. It can be returned adjusted in preprocess_data.py line 44 under  # Data Cleaning
-  6. Run local_start.sh
+  6. Run start_local.sh
 
     NOTE: Pickle, Singleton design pattern, and streamlit state annotation are used so that while the program is running the creation of the initial faiss index is persisted and reused to prevent the need to recreate. Updates can be made to that existing index through the methods included and the pickle file replace with the updated version.
 
@@ -100,8 +102,8 @@ THEN - re-run the application on a NON-apple silicone device
 IF - you continue to experience 'hanging' or infinite looping, or receive a segmentation fault error.
 
 THEN - the cause is likely the mismatch between faiss-cpu, intel mkl, pytorch, python, numbpy, and or using apple silicon  (For example see [here](https://numpy.org/devdocs/user/troubleshooting-importerror.html).)
-  - be aware: Faiss 1.7.3 is not compatible with Python >=3.10 or the corresponding pytorch for 3.9. USE PYTHON 3.8
-  - ensure your local is running in a conda env with the versions as directed above
+  - be aware: Faiss 1.7.3 is not compatible with Python >=3.10 or the corresponding pytorch for 3.9
+  - ensure your local is running in a conda env as directed above
 
 
 

@@ -28,6 +28,7 @@ class DataPreprocessor:
         self.sources_df = None
         self.preprocessing_complete = False
 
+
     def normalize_text(self, text):
         logging.info("Normalizing text")
         if isinstance(text, str):
@@ -128,7 +129,7 @@ class DataPreprocessor:
                     logging.info(f"Saving file to  {file_path}")
                     df.to_parquet(file_path)
 
-            logging.info("Data preprocessing completed successfully.")
+            logging.info("Data preprocessing files saved.")
 
         except FileNotFoundError:
             logging.error(f"Error: One or more required files were not found. Please check the file paths.")

@@ -94,7 +94,7 @@ IF - your Docker build fails with un-found url's
 THEN - you are likely running on a corporate (i.e. Grainger) computer with restrictions circumventing the wget
 
 
-IF - you are running unit tests, and the self._index.add(embeddings_np) causes infinite hanging or you receive a SIGABRT
+IF - you are running unit tests, and the self._index.add(embeddings_np) causes infinite hanging or you receive a SIGABRT or SIGSEGV
 
 THEN - re-run the application on a NON-apple silicone device
 

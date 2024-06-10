@@ -12,7 +12,7 @@ if python rag_application/modules/serialize_vector_index.py; then
     echo "Serialization completed successfully."
 
     # Define the range of ports to try
-    port_range=(8000 8001 8500 8505 9000)
+    port_range=(8505)
 
     for port in "${port_range[@]}"; do
         # Use Python to check if the port is available

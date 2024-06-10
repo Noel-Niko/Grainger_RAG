@@ -20,6 +20,8 @@ WORKDIR /app
 COPY requirements.txt /tmp/requirements.txt
 RUN pip install -r /tmp/requirements.txt
 
+RUN conda config --add channels conda-forge
+
 # Create the conda environment
 COPY environment.yml /tmp/environment.yml
 RUN conda env create -f /tmp/environment.yml && \

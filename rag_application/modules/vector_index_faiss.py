@@ -124,6 +124,7 @@ class VectorIndex:
         total_batches = (len(texts) + self.batch_size - 1)
         for batch in range(0, len(texts), self.batch_size):
             print(f"Encoding text batch {batch} of {total_batches}.")
+            logging.info(f"Encoding text batch {batch} of {total_batches}.")
             batch_texts = texts[batch:batch + self.batch_size]
             if not batch_texts:
                 continue
@@ -140,8 +141,10 @@ class VectorIndex:
 
                 embeddings.extend(batch_embeddings)
                 print(f"Finished encoding text batch {batch} of {total_batches}.")
+                logging.info(f"Finished encoding text batch {batch} of {total_batches}.")
             except Exception as e:
                 print(f"An error occurred during embedding extraction: {e}")
+                logging.error(f"An error occurred during embedding extraction: {e}")
         logging.info("Returning embeddings.")
         print("Returning embeddings.")
         return np.array(embeddings)

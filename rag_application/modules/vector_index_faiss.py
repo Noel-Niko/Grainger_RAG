@@ -1,3 +1,7 @@
+import sys
+print("*******************************Active Python executable:", sys.executable)
+
+
 import os
 import pickle
 import time

@@ -1,5 +1,11 @@
 name: simple_retrieval_augmented_generation_env
+channels:
+  - conda-forge
+  - pytorch
 dependencies:
+  - python=3.8
+  - mkl
+  - faiss-cpu=1.7.4
   - pandas
   - nltk
   - numpy

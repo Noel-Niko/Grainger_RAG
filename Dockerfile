@@ -16,9 +16,10 @@ COPY . /app
 
 WORKDIR /app
 
-# Copy requirements.txt for pip dependencies
-COPY requirements.txt /tmp/requirements.txt
-RUN pip install -r /tmp/requirements.txt
+ENV PYTHONPATH="/app:${PYTHONPATH}"
+
+# Install system level dependencies not available via conda or pip
+RUN apt-get update && apt-get install -y swig
 
 RUN conda config --add channels conda-forge
 
@@ -27,11 +28,15 @@ COPY environment.yml /tmp/environment.yml
 RUN conda env create -f /tmp/environment.yml && \
     conda clean -afy
 
+# Activate the Conda environment and install faiss-cpu
+RUN /bin/bash -c "source /opt/conda/etc/profile.d/conda.sh && conda activate simple_retrieval_augmented_generation_env"
 
+# Clean up to reduce image size
+RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 EXPOSE 8505
 
 # Make the script executable
 RUN chmod +x /app/start.sh
 
-ENTRYPOINT ["bash", "-c", "source /opt/conda/etc/profile.d/conda.sh && conda activate simple_retrieval_augmented_generation_env && ./start.sh"]
+ENTRYPOINT ["bash", "-c", "source /opt/conda/etc/profile.d/conda.sh && conda activate simple_retrieval_augmented_generation_env &&./start.sh"]

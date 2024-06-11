@@ -71,7 +71,7 @@
   
 ### LOCAL UNIT TESTING  
   Note: Due to the use of conda to help manage library version compatibility, the packages to install are listed primarily in the start shell and only those requiring a pip install in requirements.txt To set up a local env 
-  1. Create a conda env named: rag_env
+  1. Create a conda env named: simple_retrieval_augmented_generation_env
   2. Install the packages as listed in both requirements.txt and local_start.sh AND INCLUDE the commented-out test packages:
       - #conda install -y pytest==8.2.1  <<< testing pkg
       - #conda install -y Faker==25.2.0  <<< testing pkg

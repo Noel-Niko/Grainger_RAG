@@ -44,6 +44,16 @@ class RAGApplication:
     def main(self):
         self.get_vector_index()
         st.title("Retrieval-Augmented Generation (RAG) Application")
+
+        if 'conversation_history' not in st.session_state:
+            st.session_state.conversation_history = []
+
+            # Display previous questions and answers
+        for question, answer in st.session_state.conversation_history:
+            st.write(f"**Question:** {question}")
+            st.write(f"**Answer:** {answer}")
+            st.write("---")
+
         query = st.text_input("Enter your product-based question:", value="", placeholder="")
 
         # Using a separate session state variable to track submission
@@ -55,7 +65,14 @@ class RAGApplication:
         if st.session_state.submitted:
             self.current_query = query
             response = self.process_query(query)
+            # Append the new question and answer to the conversation history
+            st.session_state.conversation_history.append((query, response))
             st.write("Response:", response)
+            st.session_state.submitted = False  # Reset the submitted state for the next query
+
+        if st.button("Clear History"):
+            st.session_state.conversation_history = []
+
 
     def process_query(self, query):
         # Parse the query using the LLM

@@ -28,8 +28,8 @@ COPY environment.yml /tmp/environment.yml
 RUN conda env create -f /tmp/environment.yml && \
     conda clean -afy
 
-# Activate the Conda environment and install faiss-cpu
-RUN /bin/bash -c "source /opt/conda/etc/profile.d/conda.sh && conda activate simple_retrieval_augmented_generation_env"
+# Activate the Conda environment and install pip required install(s)
+RUN /bin/bash -c "source /opt/conda/etc/profile.d/conda.sh && conda activate simple_retrieval_augmented_generation_env && pip install -r requirements.txt"
 
 # Clean up to reduce image size
 RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*

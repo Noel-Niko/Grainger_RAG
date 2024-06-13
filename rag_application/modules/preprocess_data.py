@@ -1,12 +1,15 @@
 import re
-
-import pandas as pd
+import numpy as np
 import os
 import logging
 import pandas as pd
 import nltk
 from nltk.corpus import stopwords
 from nltk import download
+from nltk.stem import SnowballStemmer
+from many_stop_words import get_stop_words
+import contractions
+
 download('stopwords')
 download('punkt')
 
@@ -22,23 +25,50 @@ class DataPreprocessor:
         self.sources_df = None
         self.preprocessing_complete = False
 
-
     def normalize_text(self, text):
         logging.info("Normalizing text")
+        print("Normalizing text")
         if isinstance(text, str):
             text = text.lower()
+            # Removes HTML tags
+            text = re.sub(r'<.*?>', '', text)
+            # Removes newline characters
+            text = text.replace('\n', ' ').replace('\r', '')
+            # Remove emojis
+            text = re.sub(r'[^\w\s]', '', text)
+            # Expand contractions (e.g., "can't" -> "cannot")
+            text = contractions.fix(text)
             tokens = nltk.word_tokenize(text)
             english_stop_words = set(stopwords.words('english'))
             spanish_stop_words = set(stopwords.words('spanish'))
-            japanese_stop_words = set(stopwords.words('japanese'))
+            japanese_stop_words = set(get_stop_words('ja'))
             # Combine English, Spanish, and Japanese stopwords
             combined_stop_words = english_stop_words.union(spanish_stop_words).union(japanese_stop_words)
             filtered_tokens = [token for token in tokens if token not in combined_stop_words]
-            normalized_text = ' '.join(filtered_tokens)
+
+            # Stemming: Reduce words to their root form
+            stemmer = SnowballStemmer('english')
+            stemmed_tokens = [stemmer.stem(token) for token in filtered_tokens]
+
+            normalized_text = ' '.join(stemmed_tokens)
             return normalized_text
         else:
             logging.error("Expected a string while normalizing text.")
-            raise ValueError("Expected a string")
+            print("Expected a string while normalizing text.")
+            # Returning an empty string for non-string inputs instead of raising an error
+            # to allow processing of remaining data
+            return ""
+
+    def normalize_text_batch(self, batch_series):
+        logging.info("Normalizing text")
+        normalized_texts = []
+        for text in batch_series:
+            try:
+                normalized_texts.append(self.normalize_text(text))
+            except Exception as e:
+                logging.error(f"Exception occurred during normalization of text '{text}': {e}")
+                normalized_texts.append("")
+        return pd.Series(normalized_texts)
 
     def preprocess_data(self):
         logging.info("Starting data preprocessing...")
@@ -67,7 +97,7 @@ class DataPreprocessor:
             # Data Cleaning
             self.examples_df = self.examples_df.dropna().drop_duplicates()
             # TODO: REDUCING THE SIZE OF THE FILE FOR INTEGRATION TESTING  - .sample(frac=0.1)
-            self.products_df = self.products_df.dropna().drop_duplicates()
+            self.products_df = self.products_df.dropna().drop_duplicates().sample(frac=0.01)
 
             self.sources_df = self.sources_df.dropna().drop_duplicates()
 
@@ -78,13 +108,28 @@ class DataPreprocessor:
                                                  + " " + self.products_df['product_bullet_point']
                                                  + " " + self.products_df['product_brand'])
 
+            # Resetting the index to ensure continuous indexing
+            self.products_df.reset_index(drop=True, inplace=True)
+
             # Apply the normalize_text function
             try:
                 # Normalize combined_text
                 logging.info("Normalizing combined_text.")
-                self.products_df['combined_text'] = self.products_df['combined_text'].astype(str)
+                print("Normalizing combined_text.")
+                batch_size = 1000
+                num_batches = int(np.ceil(len(self.products_df['combined_text']) / batch_size))
+                for i in range(num_batches):
+                    logging.info(f"Batch {i + 1}/{num_batches}")
+                    print(f"Batch {i + 1}/{num_batches}")
+                    start_idx = i * batch_size
+                    end_idx = (i + 1) * batch_size
+                    # Using iloc for positional indexing to avoid KeyError
+                    batch = self.products_df.iloc[start_idx:end_idx]['combined_text'].astype(str)
+                    # Assigning the normalized text back to the DataFrame using iloc for consistency
+                    self.products_df.iloc[start_idx:end_idx,
+                    self.products_df.columns.get_loc('combined_text')] = self.normalize_text_batch(batch).values
 
-                # Check the first few rows to confirm the dtype is indeed 'object' (which represents strings in pandas)
+                # Check the first few rows to confirm the dtype is an 'object' (which represents strings in pandas)
                 logging.info(self.products_df['combined_text'].head())
                 print(self.products_df['combined_text'].head())
             except Exception as e:
@@ -143,6 +188,7 @@ class DataPreprocessor:
 
     def is_preprocessing_complete(self):
         return self.preprocessing_complete
+
 
 if __name__ == "__main__":
     preprocessor = DataPreprocessor()

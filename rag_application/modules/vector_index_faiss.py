@@ -14,6 +14,7 @@ from transformers import AutoTokenizer, AutoModel
 import faiss
 from typing import Tuple, List
 import logging
+from rag_application import constants
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -76,7 +77,8 @@ class VectorIndex:
 
         return cls._instance
 
-    def __init__(self, products_file=None, nlist=100, m=16, batch_size=32):
+    # set nlist as 4 * sqrt(rows)
+    def __init__(self, products_file=None, nlist=constants.nlistSize, m=16, batch_size=32):
         self.products_df = None
         self.llm = None
         self.products_file = products_file
@@ -84,8 +86,8 @@ class VectorIndex:
         self.m = m
         self.batch_size = batch_size
         self.embeddings_dict = {}
-        print("VectorIndex instance created.")
-        logging.info("VectorIndex instance created.")
+        print(f"VectorIndex instance created with nlist size of {nlist}.")
+        logging.info(f"VectorIndex instance created with nlist size of {nlist}.")
 
     def load_processed_products(self):
         """Loads the processed products data with error handling."""
@@ -220,7 +222,6 @@ class VectorIndex:
         logging.info("Searching the FAISS index.")
         print("Searching the FAISS index.")
         distance, result_index = self._index.search(query_vector[0], k)
-        # distance, result_index = self._index.search(query_vector, k)
 
         try:
             logging.info(f"Returning distance: {str(distance.tolist()[0])}")

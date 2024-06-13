@@ -59,8 +59,13 @@ class RAGApplication:
         # Using a separate session state variable to track submission
         if 'submitted' not in st.session_state:
             st.session_state.submitted = False
-        if st.button("Submit"):
+
+        col1, col2 = st.columns(2)
+
+        if col1.button("Submit"):
             st.session_state.submitted = True
+        if col2.button("Clear History"):
+            st.session_state.conversation_history = []
 
         if st.session_state.submitted:
             self.current_query = query
@@ -70,13 +75,13 @@ class RAGApplication:
             st.write("Response:", response)
             st.session_state.submitted = False  # Reset the submitted state for the next query
 
-        if st.button("Clear History"):
-            st.session_state.conversation_history = []
-
-
     def process_query(self, query):
+        # Concatenate conversation history with the current query
+        conversation_context = " ".join(
+            [f"Question: {q}, Answer: {a}" for q, a in st.session_state.conversation_history] + [f"Question: {query}"])
+
         # Parse the query using the LLM
-        refined_query = self.llm_connection.invoke(f"{initial_question_wrapper} {query}").content
+        refined_query = self.llm_connection.invoke(f"{initial_question_wrapper} {conversation_context}").content
 
         logging.info(f"**************************    Searching in FAISS for {refined_query}    *******************************")
         # Search for the refined query in the FAISS index

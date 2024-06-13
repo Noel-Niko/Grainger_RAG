@@ -9,6 +9,7 @@ from nltk import download
 from nltk.stem import SnowballStemmer
 from many_stop_words import get_stop_words
 import contractions
+from rag_application import constants
 
 download('stopwords')
 download('punkt')
@@ -110,6 +111,8 @@ class DataPreprocessor:
 
             # Resetting the index to ensure continuous indexing
             self.products_df.reset_index(drop=True, inplace=True)
+
+            constants.rows = self.products_df.shape[0]
 
             # Apply the normalize_text function
             try:

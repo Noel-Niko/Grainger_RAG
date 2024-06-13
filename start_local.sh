@@ -17,6 +17,10 @@ export PYTHONPATH="/Users/noel_niko/PycharmProjects/grainger_rag:$PYTHONPATH"
 echo "********************************************************* Preprocessing Data...:"
 python rag_application/modules/preprocess_data.py || { echo "Preprocessing failed"; exit 1; }
 
+# Remove the existing pickle file if it exists
+echo "********************************************************* Removing existing pickle file (if any)..."
+rm -f vector_index.pkl
+
 # Serialize VectorIndex instance
 echo "********************************************************* Serializing VectorIndex instance:"
 if python rag_application/modules/serialize_vector_index.py; then

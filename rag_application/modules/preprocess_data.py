@@ -8,8 +8,7 @@ from nltk.corpus import stopwords
 from nltk import download
 from nltk.stem import SnowballStemmer
 from many_stop_words import get_stop_words
-import contractions
-from rag_application import constants
+
 
 download('stopwords')
 download('punkt')
@@ -98,7 +97,7 @@ class DataPreprocessor:
             # Data Cleaning
             self.examples_df = self.examples_df.dropna().drop_duplicates()
             # TODO: REDUCING THE SIZE OF THE FILE FOR INTEGRATION TESTING  - .sample(frac=0.1)
-            self.products_df = self.products_df.dropna().drop_duplicates().sample(frac=0.1)
+            self.products_df = self.products_df.dropna().drop_duplicates().sample(frac=0.01)
 
             self.sources_df = self.sources_df.dropna().drop_duplicates()
 
@@ -111,10 +110,6 @@ class DataPreprocessor:
 
             # Resetting the index to ensure continuous indexing
             self.products_df.reset_index(drop=True, inplace=True)
-
-            constants.rows = self.products_df.shape[0]
-            logging.info(f"Value for rows: {constants.rows}")
-            print(f"Value for rows: {constants.rows}")
 
             # Apply the normalize_text function
             try:

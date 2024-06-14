@@ -73,17 +73,12 @@ class VectorIndex:
 
         return cls._instance
 
-    # set nlist as 4 * sqrt(rows) to set the number of Voronoi cells1`
-    def __init__(self, products_file=None, nlist=constants.nlistSize, m=16, batch_size=32):
+    def __init__(self, products_file=None, batch_size=32):  # m=16
         self.products_df = None
         self.llm = None
         self.products_file = products_file
-        self.nlist = nlist
-        self.m = m
         self.batch_size = batch_size
         self.embeddings_dict = {}
-        print(f"VectorIndex instance created with nlist size of {nlist}.")
-        logging.info(f"VectorIndex instance created with nlist size of {nlist}.")
 
     def load_processed_products(self):
         """Loads the processed products data with error handling."""
@@ -165,12 +160,6 @@ class VectorIndex:
         d = embeddings.shape[1]  # Dimensionality of the embeddings
 
         # Create the quantizer and index.
-        """Chose IVFPQ (Inverted File with Product Quantization) over IndexFlatL2 to
-         reduce the memory required for the large data size, and to increase the speed.
-         IVFPQ first identifies a subset of clusters (centroids) that are most likely to contain the nearest neighbors 
-         and then makes an approximate search.
-         IVF performs a brute-force exact search, comparing the query against every vector in the dataset.
-         IVF is therefore the most accurate of the two with expected higher precision."""
         logging.info("Creating quantizer")
         print("Creating quantizer")
         quantizer = faiss.IndexFlatL2(d)
@@ -179,16 +168,20 @@ class VectorIndex:
         m = 8
 
         # There's a trade-off between memory efficiency and search accuracy.
-        # Using more bits per subquantizer (like 8 or 16) generally leads to more accurate searches
+        # Using more bits per subquantizer generally leads to more accurate searches
         # but requires more memory.
-        bits = 16
+        bits = 8  # Reduced bits to ensure it fits within the limitations
+
+        # Calculate a suitable nlist value
+        num_points = embeddings.shape[0]
+        nlist = max(1, int(np.sqrt(num_points)))  # Ensure nlist is at least 1
+
+        # Ensure nlist does not exceed the number of points
+        if nlist > num_points:
+            nlist = num_points
 
         # IVFPQ chosen for improved speed
-        self._index = faiss.IndexIVFPQ(quantizer, d, m, bits)
-
-        # IndexIVF option for greater accuracy
-        # self._index = faiss.IndexIVFFlat(quantizer, d, self.nlist)
-
+        self._index = faiss.IndexIVFPQ(quantizer, d, nlist, m, bits)
 
         # Ensure embeddings is a numpy array
         embeddings_np = np.array(embeddings)
@@ -197,8 +190,8 @@ class VectorIndex:
         numeric_ids = np.arange(len(self.products_df)).astype(np.int64)
 
         # Train the index and add embeddings
-        logging.info(f"Checking of trained: {self._index.is_trained}")
-        print(f"Checking of trained: {self._index.is_trained}")
+        logging.info(f"Checking if trained: {self._index.is_trained}")
+        print(f"Checking if trained: {self._index.is_trained}")
         if not self._index.is_trained:
             logging.info("Training...")
             print("Training...")
@@ -239,38 +232,70 @@ class VectorIndex:
             logging.error("Search radius must be an integer greater than 0.")
             raise TypeError("Search radius must be an integer greater than 0.")
 
-        # Convert the query string into a numerical vector
-        query_vector = self.encode_text_to_embedding([query])
+        # Initialize variables to store results
+        faiss_distances = None
+        faiss_result_indices = None
+        direct_search_embedding = None
 
-        # Ensure the query vector has the correct shape for FAISS search
-        if len(query_vector.shape) == 1:
-            query_vector = np.expand_dims(query_vector, axis=0)
-
-        # Search the FAISS index
-        logging.info("Searching the FAISS index.")
-        print("Searching the FAISS index.")
-
-        # Setting the number of Voronoi cells that are visited during the search.
-        self._index.nprobe = 6
-
-        # Search
-        distance, result_index = self._index.search(query_vector[0], k)
-
+        # Perform Faiss similarity search
         try:
-            logging.info(f"Returning distance: {str(distance.tolist()[0])}")
-            print(f"Returning distance: {str(distance.tolist()[0])}")
-        except Exception as e:
-            logging.error("Error: Unable to convert distance data to string")
-            print("Error: Unable to convert distance data to string")
+            # Convert the query string into a numerical vector
+            query_vector = self.encode_text_to_embedding([query])
 
+            # Ensure the query vector has the correct shape for FAISS search
+            if len(query_vector.shape) == 1:
+                query_vector = np.expand_dims(query_vector, axis=0)
+
+            # Search the FAISS index
+            logging.info("Searching the FAISS index.")
+            print("Searching the FAISS index.")
+
+            # Setting the number of Voronoi cells that are visited during the search.
+            self._index.nprobe = 6
+
+            # Search
+            faiss_distances, faiss_result_indices = self._index.search(query_vector[0], k)
+
+            logging.info(f"Returning distance: {str(faiss_distances.tolist()[0])}")
+            print(f"Returning distance: {str(faiss_distances.tolist()[0])}")
+
+            logging.info(f"Returning result_index: {str(faiss_result_indices.tolist()[0])}")
+            print(f"Returning result_index: {str(faiss_result_indices.tolist()[0])}")
+
+        except Exception as e:
+            logging.error(f"Error during FAISS search: {e}")
+            print(f"Error during FAISS search: {e}")
+
+        # Perform direct search by product ID
         try:
-            logging.info(f"Returning result_index: {str(result_index.tolist()[0])}")
-            print(f"Returning result_index: {str(result_index.tolist()[0])}")
-        except Exception as e:
-            logging.error("Error: Unable to convert results data to string")
-            print("Error: Unable to convert results data to string")
+            product_id = int(query)  # Assuming query can be interpreted as a product ID
+            direct_search_embedding = self.search_by_product_id(product_id)
+        except ValueError:
+            logging.warning(f"Query '{query}' cannot be interpreted as a product ID.")
 
-        return distance, result_index
+        # Combine results from FAISS search and direct search
+        combined_distances = []
+        combined_indices = []
+
+        # Add FAISS search results if available
+        if faiss_distances is not None and faiss_result_indices is not None:
+            combined_distances.extend(faiss_distances[0])
+            combined_indices.extend(faiss_result_indices[0])
+
+        # Add direct search result if available
+        if direct_search_embedding is not None:
+            combined_distances.append(0.0)  # Consider distance 0 for direct match
+            combined_indices.append(-1)  # Use -1 or any unique identifier for direct match
+
+            # Optionally, add direct search embedding to embeddings_dict if not already present
+            if product_id not in self.embeddings_dict:
+                self.embeddings_dict[product_id] = direct_search_embedding
+
+        # Convert lists to numpy arrays
+        combined_distances = np.array(combined_distances)
+        combined_indices = np.array(combined_indices)
+
+        return combined_distances, combined_indices
 
     @staticmethod
     def find_changed_products(old_descriptions, new_descriptions):
@@ -399,28 +424,34 @@ class VectorIndex:
         logging.info(f"Searching the index for: {refined_query}")
         distances, relevant_product_indices = self.search_index(refined_query, k=k)
 
-        # Check the type and shape of relevant_product_indices
-        print(f"Type of relevant_product_indices: {type(relevant_product_indices)}")
-        print(f"Shape of relevant_product_indices: {relevant_product_indices.shape}")
-        logging.info(f"Type of relevant_product_indices: {type(relevant_product_indices)}")
-        logging.info(f"Shape of relevant_product_indices: {relevant_product_indices.shape}")
-
         # Extract the product information based on the returned indices
         product_info_list = []
         for index in relevant_product_indices:
-            try:
+            if index == -1:  # Handle direct search result
                 product_info = (
-                    f"ID: {index}, "
-                    f"Name: {self.products_df.iloc[index]['product_title']}, "
-                    f"Description: {self.products_df.iloc[index]['product_description']}, "
-                    f"Key Facts: {self.products_df.iloc[index]['product_bullet_point']}, "
-                    f"Brand: {self.products_df.iloc[index]['product_brand']}, "
-                    f"Color: {self.products_df.iloc[index]['product_color']}, "
-                    f"Location: {self.products_df.iloc[index]['product_locale']}"
+                    f"ID: {refined_query}, "
+                    f"Name: {self.products_df.loc[int(refined_query)]['product_title']}, "
+                    f"Description: {self.products_df.loc[int(refined_query)]['product_description']}, "
+                    f"Key Facts: {self.products_df.loc[int(refined_query)]['product_bullet_point']}, "
+                    f"Brand: {self.products_df.loc[int(refined_query)]['product_brand']}, "
+                    f"Color: {self.products_df.loc[int(refined_query)]['product_color']}, "
+                    f"Location: {self.products_df.loc[int(refined_query)]['product_locale']}"
                 )
                 product_info_list.append(product_info)
-            except KeyError:
-                logging.warning(f"Product ID {index} not found in the DataFrame.")
+            else:
+                try:
+                    product_info = (
+                        f"ID: {index}, "
+                        f"Name: {self.products_df.iloc[index]['product_title']}, "
+                        f"Description: {self.products_df.iloc[index]['product_description']}, "
+                        f"Key Facts: {self.products_df.iloc[index]['product_bullet_point']}, "
+                        f"Brand: {self.products_df.iloc[index]['product_brand']}, "
+                        f"Color: {self.products_df.iloc[index]['product_color']}, "
+                        f"Location: {self.products_df.iloc[index]['product_locale']}"
+                    )
+                    product_info_list.append(product_info)
+                except KeyError:
+                    logging.warning(f"Product ID {index} not found in the DataFrame.")
 
         # Join the product information into a single string
         product_info_str = ", ".join(product_info_list)
@@ -451,6 +482,21 @@ class VectorIndex:
         else:
             logging.error(f"File {products_file} not found after {max_retries * wait_time} seconds.")
             raise FileNotFoundError(f"File {products_file} not found after {max_retries * wait_time} seconds.")
+
+    def search_by_product_id(self, product_id):
+        """Searches for an embedding by product ID."""
+        logging.info(f"Searching for embedding by product ID: {product_id}")
+        print(f"Searching for embedding by product ID: {product_id}")
+
+        try:
+            embedding = self.embeddings_dict[product_id]
+            logging.info("Embedding found.")
+            print("Embedding found.")
+            return embedding
+        except KeyError:
+            logging.error(f"Embedding not found for product ID: {product_id}")
+            print(f"Embedding not found for product ID: {product_id}")
+            return None
 
 
 if __name__ == "__main__":

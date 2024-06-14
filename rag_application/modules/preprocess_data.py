@@ -8,7 +8,7 @@ from nltk.corpus import stopwords
 from nltk import download
 from nltk.stem import SnowballStemmer
 from many_stop_words import get_stop_words
-
+import contractions
 
 download('stopwords')
 download('punkt')

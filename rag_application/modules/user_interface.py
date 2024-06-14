@@ -1,7 +1,8 @@
 import logging
 import os
 import pickle
-
+import time
+from datetime import datetime
 import streamlit as st
 from rag_application.modules.vector_index_faiss import VectorIndex
 from rag_application.constants import chatOpenAiKey, initial_question_wrapper, prompt, no_matches
@@ -73,7 +74,8 @@ class RAGApplication:
             # Append the new question and answer to the conversation history
             st.session_state.conversation_history.append((query, response))
             st.write("Response:", response)
-            st.session_state.submitted = False  # Reset the submitted state for the next query
+            st.session_state.submitted = False
+            query = ""
 
     def process_query(self, query):
         # Concatenate conversation history with the current query
@@ -83,9 +85,18 @@ class RAGApplication:
         # Parse the query using the LLM
         refined_query = self.llm_connection.invoke(f"{initial_question_wrapper} {conversation_context}").content
 
-        logging.info(f"**************************    Searching in FAISS for {refined_query}    *******************************")
+        logging.info(
+            f"**************************    Searching in FAISS for {refined_query}    *******************************")
         # Search for the refined query in the FAISS index
-        context_faiss_response = self.vector_index.search_and_generate_response(refined_query, self.llm_connection, k=15)
+        start_time = time.time()
+        context_faiss_response = self.vector_index.search_and_generate_response(refined_query, self.llm_connection,
+                                                                                k=15)
+        end_time = time.time()
+        search_duration = end_time - start_time
+        logging.info(f"FAISS search completed in {search_duration:.2f} seconds.")
+        with open('faiss_search_durations.txt', 'a') as file:
+            file.write(f"FAISS search duration: {search_duration:.2f} seconds, Timestamp: {datetime.now()}\n")
+
         if context_faiss_response is None or context_faiss_response.strip() == "":
             context_faiss_response = no_matches
 

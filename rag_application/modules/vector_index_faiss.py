@@ -151,23 +151,44 @@ class VectorIndex:
         """Creates an FAISS IVF-HC index for efficient vector similarity search with batch processing."""
         logging.info("Creating an FAISS IVF-HC index for efficient vector similarity search with batch processing.")
         print("Creating an FAISS IVF-HC index for efficient vector similarity search with batch processing.")
+
         combined_texts = self.products_df['combined_text'].tolist()
         embeddings = self.encode_text_to_embedding(combined_texts)
-        expected_dim = 768  # Example: BERT base model has 768 dimensions
+        expected_dim = 768  # BERT base model has 768 dimensions
+
         if embeddings.ndim != 2 or embeddings.shape[1] != expected_dim:
-            print(f"Inconsistent embedding dimensions. Expected {expected_dim}, got {embeddings.shape[1]}")
-            logging.error(f"Inconsistent embedding dimensions. Expected {expected_dim}, got {embeddings.shape[1]}")
-            raise ValueError(
-                f"Inconsistent embedding dimensions. Expected {expected_dim}, got {embeddings.shape[1]}")
+            msg = f"Inconsistent embedding dimensions. Expected {expected_dim}, got {embeddings.shape[1]}"
+            print(msg)
+            logging.error(msg)
+            raise ValueError(msg)
 
         d = embeddings.shape[1]  # Dimensionality of the embeddings
 
-        # Create the quantizer and index. Chose IndexFlatL2 over the possible better
-        # IVFPQ due to availability of documentation
+        # Create the quantizer and index.
+        """Chose IVFPQ (Inverted File with Product Quantization) over IndexFlatL2 to
+         reduce the memory required for the large data size, and to increase the speed.
+         IVFPQ first identifies a subset of clusters (centroids) that are most likely to contain the nearest neighbors 
+         and then makes an approximate search.
+         IVF performs a brute-force exact search, comparing the query against every vector in the dataset.
+         IVF is therefore the most accurate of the two with expected higher precision."""
         logging.info("Creating quantizer")
         print("Creating quantizer")
         quantizer = faiss.IndexFlatL2(d)
-        self._index = faiss.IndexIVFFlat(quantizer, d, self.nlist)
+
+        # Each vector is split into m subvectors/subquantizers.
+        m = 8
+
+        # There's a trade-off between memory efficiency and search accuracy.
+        # Using more bits per subquantizer (like 8 or 16) generally leads to more accurate searches
+        # but requires more memory.
+        bits = 16
+
+        # IVFPQ chosen for improved speed
+        self._index = faiss.IndexIVFPQ(quantizer, d, m, bits)
+
+        # IndexIVF option for greater accuracy
+        # self._index = faiss.IndexIVFFlat(quantizer, d, self.nlist)
+
 
         # Ensure embeddings is a numpy array
         embeddings_np = np.array(embeddings)

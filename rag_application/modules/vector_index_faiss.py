@@ -1,7 +1,3 @@
-import sys
-print("*******************************Active Python executable:", sys.executable)
-
-
 import os
 import pickle
 import time
@@ -77,7 +73,7 @@ class VectorIndex:
 
         return cls._instance
 
-    # set nlist as 4 * sqrt(rows)
+    # set nlist as 4 * sqrt(rows) to set the number of Voronoi cells1`
     def __init__(self, products_file=None, nlist=constants.nlistSize, m=16, batch_size=32):
         self.products_df = None
         self.llm = None
@@ -180,14 +176,21 @@ class VectorIndex:
         numeric_ids = np.arange(len(self.products_df)).astype(np.int64)
 
         # Train the index and add embeddings
-        logging.info("Training...")
-        print("Training...")
-        self._index.train(embeddings_np)
+        logging.info(f"Checking of trained: {self._index.is_trained}")
+        print(f"Checking of trained: {self._index.is_trained}")
+        if not self._index.is_trained:
+            logging.info("Training...")
+            print("Training...")
+            self._index.train(embeddings_np)
+
+        logging.info(f"Is trained: {self._index.is_trained}")
+        print(f"Is trained: {self._index.is_trained}")
+
         logging.info("Embedding...")
         print("Embedding...")
         self._index.add_with_ids(embeddings_np, numeric_ids)
-        logging.info("Embedding completed.")
-        print("Embedding completed.")
+        logging.info(f"Embedding completed. nTotal = {self._index.ntotal}")
+        print(f"Embedding completed. nTotal = {self._index.ntotal}")
         self._is_index_created = True
 
     def search_index(self, query: str, k: int = 10) -> Tuple[np.ndarray, np.ndarray]:
@@ -199,14 +202,17 @@ class VectorIndex:
         """
         logging.info("Searching for the k nearest neighbors of the query.")
         print("Searching for the k nearest neighbors of the query.")
+
         # Check if the index is initialized
         if self._index is None:
             logging.error("Index is not initialized.")
             raise RuntimeError("Index is not initialized.")
+
         # Check if the query is empty and raise a ValueError if it is
         if not query.strip():
             logging.error("Query string cannot be empty.")
             raise ValueError("Query string cannot be empty.")
+
         # Check if k is an integer > 0
         if not isinstance(k, int) or k <= 0:
             logging.error("Search radius must be an integer greater than 0.")
@@ -216,11 +222,17 @@ class VectorIndex:
         query_vector = self.encode_text_to_embedding([query])
 
         # Ensure the query vector has the correct shape for FAISS search
-        query_vector = np.expand_dims(query_vector, axis=0)
+        if len(query_vector.shape) == 1:
+            query_vector = np.expand_dims(query_vector, axis=0)
 
         # Search the FAISS index
         logging.info("Searching the FAISS index.")
         print("Searching the FAISS index.")
+
+        # Setting the number of Voronoi cells that are visited during the search.
+        self._index.nprobe = 6
+
+        # Search
         distance, result_index = self._index.search(query_vector[0], k)
 
         try:

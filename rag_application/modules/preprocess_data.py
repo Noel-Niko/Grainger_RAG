@@ -113,6 +113,8 @@ class DataPreprocessor:
             self.products_df.reset_index(drop=True, inplace=True)
 
             constants.rows = self.products_df.shape[0]
+            logging.info(f"Value for rows: {constants.rows}")
+            print(f"Value for rows: {constants.rows}")
 
             # Apply the normalize_text function
             try:

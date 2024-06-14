@@ -74,7 +74,8 @@ class RAGApplication:
             # Append the new question and answer to the conversation history
             st.session_state.conversation_history.append((query, response))
             st.write("Response:", response)
-            st.session_state.submitted = False  # Reset the submitted state for the next query
+            st.session_state.submitted = False
+            query = ""
 
     def process_query(self, query):
         # Concatenate conversation history with the current query

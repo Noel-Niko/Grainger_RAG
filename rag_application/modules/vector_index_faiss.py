@@ -73,17 +73,12 @@ class VectorIndex:
 
         return cls._instance
 
-    # set nlist as 4 * sqrt(rows) to set the number of Voronoi cells.
-    def __init__(self, products_file=None, nlist=constants.nlistSize, batch_size=32):  # m=16
+    def __init__(self, products_file=None, batch_size=32):  # m=16
         self.products_df = None
         self.llm = None
         self.products_file = products_file
-        self.nlist = nlist
-        # self.m = m
         self.batch_size = batch_size
         self.embeddings_dict = {}
-        print(f"VectorIndex instance created with nlist size of {nlist}.")
-        logging.info(f"VectorIndex instance created with nlist size of {nlist}.")
 
     def load_processed_products(self):
         """Loads the processed products data with error handling."""
@@ -165,12 +160,6 @@ class VectorIndex:
         d = embeddings.shape[1]  # Dimensionality of the embeddings
 
         # Create the quantizer and index.
-        """Chose IVFPQ (Inverted File with Product Quantization) over IndexFlatL2 to
-         reduce the memory required for the large data size, and to increase the speed.
-         IVFPQ first identifies a subset of clusters (centroids) that are most likely to contain the nearest neighbors 
-         and then makes an approximate search.
-         IVF performs a brute-force exact search, comparing the query against every vector in the dataset.
-         IVF is therefore the most accurate of the two with expected higher precision."""
         logging.info("Creating quantizer")
         print("Creating quantizer")
         quantizer = faiss.IndexFlatL2(d)
@@ -181,13 +170,18 @@ class VectorIndex:
         # There's a trade-off between memory efficiency and search accuracy.
         # Using more bits per subquantizer generally leads to more accurate searches
         # but requires more memory.
-        bits = 16
+        bits = 8  # Reduced bits to ensure it fits within the limitations
+
+        # Calculate a suitable nlist value
+        num_points = embeddings.shape[0]
+        nlist = max(1, int(np.sqrt(num_points)))  # Ensure nlist is at least 1
+
+        # Ensure nlist does not exceed the number of points
+        if nlist > num_points:
+            nlist = num_points
 
         # IVFPQ chosen for improved speed
-        self._index = faiss.IndexIVFPQ(quantizer, d, m, bits)
-
-        # IndexIVF option for greater accuracy
-        # self._index = faiss.IndexIVFFlat(quantizer, d, self.nlist)
+        self._index = faiss.IndexIVFPQ(quantizer, d, nlist, m, bits)
 
         # Ensure embeddings is a numpy array
         embeddings_np = np.array(embeddings)
@@ -196,8 +190,8 @@ class VectorIndex:
         numeric_ids = np.arange(len(self.products_df)).astype(np.int64)
 
         # Train the index and add embeddings
-        logging.info(f"Checking of trained: {self._index.is_trained}")
-        print(f"Checking of trained: {self._index.is_trained}")
+        logging.info(f"Checking if trained: {self._index.is_trained}")
+        print(f"Checking if trained: {self._index.is_trained}")
         if not self._index.is_trained:
             logging.info("Training...")
             print("Training...")

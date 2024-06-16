@@ -194,12 +194,11 @@ class TestVectorIndex(unittest.TestCase):
         # Create new descriptions
         new_descriptions = {}
         for product_id in selected_product_ids:
-            # Assuming 'product_description' is the column holding the descriptions
             old_description = first_10_vectors.loc[product_id, 'product_description']
             new_descriptions[product_id] = f"Updated description for product {product_id} from '{old_description}'"
 
         # Test identifying the changed vectors.
-        # Directly pass the descriptions from first_10_vectors and the new_descriptions dictionary
+        # Passing the descriptions from first_10_vectors and the new_descriptions dictionary
         changed_product_ids = self.vector_index.find_changed_products(
             first_10_vectors['product_description'], new_descriptions)
 

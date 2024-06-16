@@ -75,7 +75,6 @@ class RAGApplication:
             st.session_state.conversation_history.append((query, response))
             st.write("Response:", response)
             st.session_state.submitted = False
-            query = ""
 
     def process_query(self, query):
         # Concatenate conversation history with the current query
@@ -103,6 +102,7 @@ class RAGApplication:
         # Pass the product information back to the LLM to form a response message
         document_chain = create_stuff_documents_chain(self.llm_connection, prompt)
         context_document = Document(page_content=context_faiss_response)
+        self.current_query = ""
         return document_chain.invoke({
             "input": f"{query}",
             "context": [context_document]

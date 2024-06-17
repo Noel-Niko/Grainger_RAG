@@ -75,8 +75,11 @@ class RAGApplication:
             st.session_state.conversation_history.append((query, response))
             st.write("Response:", response)
             st.session_state.submitted = False
+            # Clear the input field for the next question
+            st.text_input("Enter your product-based question:", value="", placeholder="")
 
-    def process_query(self, query):
+
+def process_query(self, query):
         # Concatenate conversation history with the current query
         conversation_context = " ".join(
             [f"Question: {q}, Answer: {a}" for q, a in st.session_state.conversation_history] + [f"Question: {query}"])

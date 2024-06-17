@@ -61,13 +61,12 @@ class RAGApplication:
         if 'submitted' not in st.session_state:
             st.session_state.submitted = False
 
-        col1, col2, col3 = st.columns(3)
+        col1, col2= st.columns(2)
 
         if col1.button("Submit"):
             st.session_state.submitted = True
-        if col2.button("Clear Question"):
-            query = ""
-        if col3.button("Clear History"):
+
+        if col2.button("Clear History"):
             st.session_state.conversation_history = []
 
         if st.session_state.submitted:
@@ -90,8 +89,7 @@ class RAGApplication:
             f"**************************    Searching in FAISS for {refined_query}    *******************************")
         # Search for the refined query in the FAISS index
         start_time = time.time()
-        context_faiss_response = self.vector_index.search_and_generate_response(refined_query, self.llm_connection,
-                                                                                k=15)
+        context_faiss_response = self.vector_index.search_and_generate_response(refined_query, self.llm_connection, k=5)
         end_time = time.time()
         search_duration = end_time - start_time
         logging.info(f"FAISS search completed in {search_duration:.2f} seconds.")

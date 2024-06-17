@@ -89,7 +89,7 @@ class RAGApplication:
             f"**************************    Searching in FAISS for {refined_query}    *******************************")
         # Search for the refined query in the FAISS index
         start_time = time.time()
-        context_faiss_response = self.vector_index.search_and_generate_response(refined_query, self.llm_connection, k=5)
+        context_faiss_response = self.vector_index.search_and_generate_response(refined_query, self.llm_connection, k=15)
         end_time = time.time()
         search_duration = end_time - start_time
         logging.info(f"FAISS search completed in {search_duration:.2f} seconds.")

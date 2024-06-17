@@ -61,11 +61,13 @@ class RAGApplication:
         if 'submitted' not in st.session_state:
             st.session_state.submitted = False
 
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns(3)
 
         if col1.button("Submit"):
             st.session_state.submitted = True
-        if col2.button("Clear History"):
+        if col2.button("Clear Question"):
+            query = ""
+        if col3.button("Clear History"):
             st.session_state.conversation_history = []
 
         if st.session_state.submitted:
@@ -75,11 +77,8 @@ class RAGApplication:
             st.session_state.conversation_history.append((query, response))
             st.write("Response:", response)
             st.session_state.submitted = False
-            # Clear the input field for the next question
-            st.text_input("Enter your product-based question:", value="", placeholder="")
 
-
-def process_query(self, query):
+    def process_query(self, query):
         # Concatenate conversation history with the current query
         conversation_context = " ".join(
             [f"Question: {q}, Answer: {a}" for q, a in st.session_state.conversation_history] + [f"Question: {query}"])

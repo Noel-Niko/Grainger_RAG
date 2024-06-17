@@ -80,7 +80,7 @@ class TestVectorIndex(unittest.TestCase):
         # Create a temporary file and write the dummy product data to it
         with tempfile.NamedTemporaryFile(mode='wb', delete=False, suffix='.parquet') as temp_file:
             dummy_product_data_trained.to_parquet(temp_file.name, engine='pyarrow')
-            self.vector_index = VectorIndex(products_file=temp_file.name, nlist=100, m=16, batch_size=16)
+            self.vector_index = VectorIndex(products_file=temp_file.name, batch_size=16)
             self.temp_file_name = temp_file.name
 
         # ********  Generate from a created pickle file ********
@@ -123,9 +123,9 @@ class TestVectorIndex(unittest.TestCase):
         self.set_up_data()
 
         # Perform a simple search to verify the functionality of the index
-        query_result = self.vector_index.search_index("sample query", k=3)
+        query_result = self.vector_index.search_index("APPLE, hammer", k=3)
         self.assertIsInstance(query_result, tuple, "Search returned unexpected result type.")
-        self.assertGreater(len(query_result[1].tolist()[0]), 0, "No results found for the sample query.")
+        self.assertGreater(len(query_result[1].tolist()), 0, "No results found for the sample query.")
 
     def test_single_word_search(self):
         """Test searching for nearest neighbors."""
@@ -141,15 +141,15 @@ class TestVectorIndex(unittest.TestCase):
 
         # Ensure distances is a numpy array
         self.assertIsInstance(distances, np.ndarray, "Distances are not a numpy array.")
-        self.assertEqual(5, len(distances.tolist()[0]), "Number of distances does not match k.")
+        self.assertEqual(5, len(distances.tolist()), "Number of distances does not match k.")
 
         # Ensure product_ids is a list
         self.assertIsInstance(product_ids, np.ndarray, "Product IDs are not a list.")
-        self.assertGreaterEqual(len(product_ids.tolist()[0]), 1, "No product IDs returned.")
-        self.assertLessEqual(len(product_ids.tolist()[0]), 6, "More than 5 product IDs returned.")
+        self.assertGreaterEqual(len(product_ids.tolist()), 1, "No product IDs returned.")
+        self.assertLessEqual(len(product_ids.tolist()), 6, "More than 5 product IDs returned.")
 
         # Ensure each product_id is an integer or string
-        for pid in product_ids.tolist()[0]:
+        for pid in product_ids.tolist():
             self.assertIsInstance(pid, (int, str), "Product ID is not an integer or string.")
 
     def test_search_and_generate_response(self):
@@ -194,12 +194,11 @@ class TestVectorIndex(unittest.TestCase):
         # Create new descriptions
         new_descriptions = {}
         for product_id in selected_product_ids:
-            # Assuming 'product_description' is the column holding the descriptions
             old_description = first_10_vectors.loc[product_id, 'product_description']
             new_descriptions[product_id] = f"Updated description for product {product_id} from '{old_description}'"
 
         # Test identifying the changed vectors.
-        # Directly pass the descriptions from first_10_vectors and the new_descriptions dictionary
+        # Passing the descriptions from first_10_vectors and the new_descriptions dictionary
         changed_product_ids = self.vector_index.find_changed_products(
             first_10_vectors['product_description'], new_descriptions)
 

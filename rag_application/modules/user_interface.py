@@ -61,10 +61,11 @@ class RAGApplication:
         if 'submitted' not in st.session_state:
             st.session_state.submitted = False
 
-        col1, col2 = st.columns(2)
+        col1, col2= st.columns(2)
 
         if col1.button("Submit"):
             st.session_state.submitted = True
+
         if col2.button("Clear History"):
             st.session_state.conversation_history = []
 
@@ -75,7 +76,6 @@ class RAGApplication:
             st.session_state.conversation_history.append((query, response))
             st.write("Response:", response)
             st.session_state.submitted = False
-            query = ""
 
     def process_query(self, query):
         # Concatenate conversation history with the current query
@@ -89,8 +89,7 @@ class RAGApplication:
             f"**************************    Searching in FAISS for {refined_query}    *******************************")
         # Search for the refined query in the FAISS index
         start_time = time.time()
-        context_faiss_response = self.vector_index.search_and_generate_response(refined_query, self.llm_connection,
-                                                                                k=15)
+        context_faiss_response = self.vector_index.search_and_generate_response(refined_query, self.llm_connection, k=15)
         end_time = time.time()
         search_duration = end_time - start_time
         logging.info(f"FAISS search completed in {search_duration:.2f} seconds.")
@@ -103,6 +102,7 @@ class RAGApplication:
         # Pass the product information back to the LLM to form a response message
         document_chain = create_stuff_documents_chain(self.llm_connection, prompt)
         context_document = Document(page_content=context_faiss_response)
+        self.current_query = ""
         return document_chain.invoke({
             "input": f"{query}",
             "context": [context_document]

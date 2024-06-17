@@ -1,9 +1,14 @@
+import os
 import subprocess
 import time
 
+
 def run_streamlit_app():
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    app_path = os.path.join(script_dir, '..', 'rag_application/modules/user_interface.py')
+
     # Command to run the Streamlit app
-    command = ["streamlit", "run", "run_grainger_rag.py"]
+    command = ["streamlit", "run", app_path]
 
     # Launch the Streamlit app
     process = subprocess.Popen(command)

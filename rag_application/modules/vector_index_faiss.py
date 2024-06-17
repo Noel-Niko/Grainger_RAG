@@ -254,42 +254,43 @@ class VectorIndex:
             self._index.nprobe = 6
 
             # Search
-            faiss_distances, faiss_result_indices = self._index.search(query_vector[0], k)
+            faiss_distances, faiss_result_indices = self._index.search(query_vector, k)
 
-            logging.info(f"Returning distance: {str(faiss_distances.tolist()[0])}")
-            print(f"Returning distance: {str(faiss_distances.tolist()[0])}")
+            logging.info(f"Returning distance: {str(faiss_distances.tolist())}")
+            print(f"Returning distance: {str(faiss_distances.tolist())}")
 
-            logging.info(f"Returning result_index: {str(faiss_result_indices.tolist()[0])}")
-            print(f"Returning result_index: {str(faiss_result_indices.tolist()[0])}")
+            logging.info(f"Returning result_index: {str(faiss_result_indices.tolist())}")
+            print(f"Returning result_index: {str(faiss_result_indices.tolist())}")
 
         except Exception as e:
             logging.error(f"Error during FAISS search: {e}")
             print(f"Error during FAISS search: {e}")
 
-        # Perform direct search by product ID
-        try:
-            product_id = int(query)  # Assuming query can be interpreted as a product ID
-            direct_search_embedding = self.search_by_product_id(product_id)
-        except ValueError:
-            logging.warning(f"Query '{query}' cannot be interpreted as a product ID.")
 
         # Combine results from FAISS search and direct search
         combined_distances = []
         combined_indices = []
 
+        # Perform direct search by product ID
+        try:
+            product_id = int(query)  # Assuming query can be interpreted as a product ID
+            direct_search_embedding = self.search_by_product_id(product_id)
+            # Add direct search result if available
+            if direct_search_embedding is not None:
+                combined_distances.append(0.0)  # Distance 0 == direct match
+                combined_indices.append(-1)  # -1 == identifier for direct match
+
+                # Add direct search embedding to embeddings_dict if not already present
+                if product_id is not None and product_id not in self.embeddings_dict:
+                    self.embeddings_dict[product_id] = direct_search_embedding
+        except ValueError:
+            logging.warning(f"Query '{query}' cannot be interpreted as a product ID.")
+
+
         # Add FAISS search results if available
         if faiss_distances is not None and faiss_result_indices is not None:
             combined_distances.extend(faiss_distances[0])
             combined_indices.extend(faiss_result_indices[0])
-
-        # Add direct search result if available
-        if direct_search_embedding is not None:
-            combined_distances.append(0.0)  # Consider distance 0 for direct match
-            combined_indices.append(-1)  # Use -1 or any unique identifier for direct match
-
-            # Optionally, add direct search embedding to embeddings_dict if not already present
-            if product_id not in self.embeddings_dict:
-                self.embeddings_dict[product_id] = direct_search_embedding
 
         # Convert lists to numpy arrays
         combined_distances = np.array(combined_distances)

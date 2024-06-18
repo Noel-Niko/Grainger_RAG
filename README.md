@@ -63,6 +63,7 @@
   4. Install the required libraries into your conda environment
       - pip install faiss-cpu
       - conda install pandas nltk numpy transformers pytorch scikit-learn langchain langchain-openai langsmith streamlit langdetect pyyaml packaging
+      - python -m spacy download ja_core_news_sm && \python -m spacy download es_core_news_sm && \python -m spacy download en_core_web_sm
   5. The size of the products_df data frame can be reduced for speed of processing for test and demo. It can be returned adjusted in preprocess_data.py line 44 under  # Data Cleaning
   6. Run start_local.sh
 

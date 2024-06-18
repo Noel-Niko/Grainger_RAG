@@ -6,8 +6,6 @@ import numpy as np
 import pandas as pd
 import spacy
 import re
-from google.cloud import translate_v2 as translate
-from google.cloud import language_v1
 from bs4 import BeautifulSoup
 from nltk import download
 from nltk.corpus import stopwords
@@ -21,19 +19,6 @@ download('punkt')
 # Configure logging
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
-
-translate_client = translate.Client()
-
-def translate_text(text, src='auto', dest='en'):
-    try:
-        if src == 'auto':
-            src = 'en'  # Google Cloud Translation API does not support auto-detection in the free tier
-        translation = translate_client.translate(text, target_language=dest, source_language=src)
-        return translation['translatedText']
-    except Exception as e:
-        logging.error(f"Translation failed: {e}")
-        return text
-
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -61,10 +46,10 @@ class DataPreprocessor:
             detected_language, _ = langid.classify(text)
             logging.info(f"Detected language: {detected_language}")
 
-            # Translate to English if not already in English
-            if detected_language != 'en':
-                logging.info(f"Translating from {detected_language} to English")
-                text = translate_text(text, src=detected_language, dest='en')
+            # TODO: Translate to English if not already in English
+            # if detected_language != 'en':
+            #     logging.info(f"Translating from {detected_language} to English")
+            #     text = translate_text(text, src=detected_language, dest='en')
 
             # Sentence tokenization
             sentences = sent_tokenize(text)
@@ -136,7 +121,7 @@ class DataPreprocessor:
             # Data Cleaning
             self.examples_df = self.examples_df.dropna().drop_duplicates()
             # TODO: REDUCING THE SIZE OF THE FILE FOR INTEGRATION TESTING  - .sample(frac=0.1)
-            self.products_df = self.products_df.dropna().drop_duplicates().sample(frac=0.001)
+            self.products_df = self.products_df.dropna().drop_duplicates().sample(frac=0.01)
 
             self.sources_df = self.sources_df.dropna().drop_duplicates()
 

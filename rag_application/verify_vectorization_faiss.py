@@ -22,7 +22,7 @@ def generate_random_product_data(num_samples=10000, searchable_keywords=['PRODUC
     product_colors = [fake.color_name() for _ in range(num_samples)]
     product_locales = [fake.city() for _ in range(num_samples)]
 
-    combined_text = [f"{product_titles[i]} - {product_descriptions[i]}" for i in range(num_samples)]
+    combined_text = [f"{product_ids[i]} - {product_titles[i]} - {product_descriptions[i]}" for i in range(num_samples)]
 
     # Update a portion of the combined_text with varied searchable keywords
     for i, keyword in enumerate(searchable_keywords):
@@ -48,9 +48,6 @@ def generate_random_product_data(num_samples=10000, searchable_keywords=['PRODUC
 
         # Choose a random keyword from the list
         keyword = searchable_keywords[i % len(searchable_keywords)]
-        entry_with_keyword[
-            'combined_text'] = f"{keyword} - {entry_with_keyword['product_title']} - {entry_with_keyword['product_description']}"
-
         # Introduce additional random variations
         entry_with_keyword['product_title'] = fake.catch_phrase()
         entry_with_keyword['product_description'] = fake.text(max_nb_chars=200)
@@ -60,6 +57,9 @@ def generate_random_product_data(num_samples=10000, searchable_keywords=['PRODUC
         entry_with_keyword['product_locale'] = fake.city()
 
         entry_with_keyword['product_id'] = len(product_data) + i + 1
+        entry_with_keyword[
+            'combined_text'] = f"{entry_with_keyword['product_id']}-{keyword} - {entry_with_keyword['product_title']} - {entry_with_keyword['product_description']}"
+
         additional_entries.append(entry_with_keyword)
 
     additional_df = pd.DataFrame(additional_entries)
@@ -127,6 +127,20 @@ class TestVectorIndex(unittest.TestCase):
         self.assertIsInstance(query_result, tuple, "Search returned unexpected result type.")
         self.assertGreater(len(query_result[1].tolist()), 0, "No results found for the sample query.")
 
+    def test_search_by_product_id(self):
+        """Test search_by_product_id method."""
+        self.set_up_data()
+
+        product_id = 3
+        embedding, index = self.vector_index.search_by_product_id(product_id)
+
+        self.assertIsNotNone(embedding, "Embedding not found for product ID.")
+        self.assertIsNotNone(index, "Index not found for product ID.")
+
+        # Verify that the retrieved index can reconstruct the product
+        retrieved_product = self.vector_index._index.reconstruct(int(index))
+        self.assertIsNotNone(retrieved_product, "Product not found in FAISS index.")
+
     def test_single_word_search(self):
         """Test searching for nearest neighbors."""
         self.set_up_data()
@@ -159,7 +173,7 @@ class TestVectorIndex(unittest.TestCase):
         self.vector_index.create_faiss_index()
 
         # Define a refined query
-        refined_query = "sample query"
+        refined_query = "hammer"
 
         # Call the method
         response = self.vector_index.search_and_generate_response(refined_query, llm=None, k=5)

@@ -88,6 +88,7 @@ class VectorIndex:
         try:
             self.products_df = pd.read_parquet(self.products_file)
             self.products_df.set_index('product_id', inplace=True)
+            self.products_df.reset_index(inplace=True)  # Keep 'product_id' as both index and column
             print(self.products_df.shape)
             logging.info("Completed loading preprocessed products.")
             print("Completed loading preprocessed products.")
@@ -149,8 +150,14 @@ class VectorIndex:
 
         combined_texts = self.products_df['combined_text'].tolist()
         embeddings = self.encode_text_to_embedding(combined_texts)
-        expected_dim = 768  # BERT base model has 768 dimensions
+        # Update embeddings_dict with product_id as key and embedding as value
+        for i, product_id in enumerate(self.products_df['product_id']):
+            self.embeddings_dict[product_id] = embeddings[i]
 
+        logging.info("Embeddings dictionary updated.")
+        print("Embeddings dictionary updated.")
+
+        expected_dim = 768  # BERT base model has 768 dimensions
         if embeddings.ndim != 2 or embeddings.shape[1] != expected_dim:
             msg = f"Inconsistent embedding dimensions. Expected {expected_dim}, got {embeddings.shape[1]}"
             print(msg)
@@ -266,14 +273,15 @@ class VectorIndex:
             logging.error(f"Error during FAISS search: {e}")
             print(f"Error during FAISS search: {e}")
 
-
         # Combine results from FAISS search and direct search
         combined_distances = []
         combined_indices = []
 
         # Perform direct search by product ID
         try:
-            product_id = int(query)  # Assuming query can be interpreted as a product ID
+            product_id = int(query)
+            logging.info(f"Searching for product_id: {product_id}")
+            print(f"Searching for product_id: {product_id}")
             direct_search_embedding = self.search_by_product_id(product_id)
             # Add direct search result if available
             if direct_search_embedding is not None:
@@ -285,7 +293,6 @@ class VectorIndex:
                     self.embeddings_dict[product_id] = direct_search_embedding
         except ValueError:
             logging.warning(f"Query '{query}' cannot be interpreted as a product ID.")
-
 
         # Add FAISS search results if available
         if faiss_distances is not None and faiss_result_indices is not None:
@@ -428,18 +435,6 @@ class VectorIndex:
         # Extract the product information based on the returned indices
         product_info_list = []
         for index in relevant_product_indices:
-            if index == -1:  # Handle direct search result
-                product_info = (
-                    f"ID: {refined_query}, "
-                    f"Name: {self.products_df.loc[int(refined_query)]['product_title']}, "
-                    f"Description: {self.products_df.loc[int(refined_query)]['product_description']}, "
-                    f"Key Facts: {self.products_df.loc[int(refined_query)]['product_bullet_point']}, "
-                    f"Brand: {self.products_df.loc[int(refined_query)]['product_brand']}, "
-                    f"Color: {self.products_df.loc[int(refined_query)]['product_color']}, "
-                    f"Location: {self.products_df.loc[int(refined_query)]['product_locale']}"
-                )
-                product_info_list.append(product_info)
-            else:
                 try:
                     product_info = (
                         f"ID: {index}, "
@@ -493,11 +488,25 @@ class VectorIndex:
             embedding = self.embeddings_dict[product_id]
             logging.info("Embedding found.")
             print("Embedding found.")
-            return embedding
+            # Convert embedding to numpy array if needed
+            embedding_np = np.array(embedding, dtype=np.float32)  # Assuming embedding is already a numpy array
+
+            # Perform a search in the FAISS index to find the nearest neighbor
+            D, I = self._index.search(np.expand_dims(embedding_np, axis=0), 1)
+            if len(I) > 0 and I[0][0] != -1:  # Check if a valid index was found
+                index = int(I[0][0])  # Extract the index of the nearest neighbor
+                logging.info(f"Nearest neighbor index: {index}")
+                print(f"Nearest neighbor index: {index}")
+                return embedding, index
+            else:
+                logging.error("No valid nearest neighbor found in the FAISS index.")
+                print("No valid nearest neighbor found in the FAISS index.")
+                return embedding, None
+
         except KeyError:
             logging.error(f"Embedding not found for product ID: {product_id}")
             print(f"Embedding not found for product ID: {product_id}")
-            return None
+            return None, None
 
 
 if __name__ == "__main__":

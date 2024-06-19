@@ -20,9 +20,6 @@ download('punkt')
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
 
 class DataPreprocessor:
     def __init__(self):
@@ -132,8 +129,8 @@ class DataPreprocessor:
                                                  + " " + self.products_df['product_bullet_point']
                                                  + " " + self.products_df['product_brand'])
 
-            # Resetting the index to ensure continuous indexing
-            self.products_df.reset_index(drop=True, inplace=True)
+            # 'product_id' is both an index and a column
+            self.products_df.reset_index(inplace=True, drop=False)
 
             constants.rows = self.products_df.shape[0]
 

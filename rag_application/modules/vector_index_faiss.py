@@ -82,22 +82,16 @@ class VectorIndex:
 
     def load_processed_products(self):
         """Loads the processed products data with error handling."""
-        print("Loading preprocessed products.")
         logging.info("Loading preprocessed products.")
+        print("Loading preprocessed products.")
 
         try:
             self.products_df = pd.read_parquet(self.products_file)
-            self.products_df.set_index('product_id', inplace=True)
-            self.products_df.reset_index(inplace=True)  # Keep 'product_id' as both index and column
-            print(self.products_df.shape)
             logging.info("Completed loading preprocessed products.")
-            print("Completed loading preprocessed products.")
         except FileNotFoundError:
             logging.error(f"File {self.products_file} not found.")
-            print(f"File {self.products_file} not found.")
         except Exception as e:
             logging.error(f"An error occurred while loading the file: {e}")
-            print(f"An error occurred while loading the file: {e}")
 
     def encode_text_to_embedding(self, texts: List[str]):
         """Encodes a list of texts to BERT embeddings with error handling."""
@@ -350,22 +344,16 @@ class VectorIndex:
         # Find products whose descriptions have changed
         changed_products = self.find_changed_products(
             {pid: row['product_description'] for pid, row in self.products_df.iterrows()}, updates)
+        logging.info(f"Changed products list: {str(list(changed_products))}")
+        print(f"Changed products list: {str(list(changed_products))}")
 
         # Update descriptions in the DataFrame
         for product_id, new_description in updates.items():
-            if product_id not in self.products_df.index:
+            if product_id not in self.products_df['product_id'].values:
                 raise KeyError(f"Product ID {product_id} not found in the DataFrame.")
-            self.products_df.at[product_id, 'product_description'] = new_description
-            self.products_df.at[
-                product_id, 'combined_text'] = f"{self.products_df.at[product_id, 'product_title']} {new_description}"
-
-        # Regenerate embeddings only for changed products
-        try:
-            logging.info(f"Changed products list: {str(list(changed_products))}")
-            print(f"Changed products list: {str(list(changed_products))}")
-        except Exception as e:
-            logging.error("Error: Unable to convert changed products list to string")
-            print("Error: Unable to convert changed products list to string")
+            self.products_df.loc[self.products_df['product_id'] == product_id, 'product_description'] = new_description
+            self.products_df.loc[self.products_df['product_id'] == product_id, 'combined_text'] = \
+                f"{self.products_df.loc[self.products_df['product_id'] == product_id, 'product_title'].values[0]} {new_description}"
 
         if changed_products:
             self.update_embeddings_for_changed_products(list(changed_products))
@@ -394,15 +382,16 @@ class VectorIndex:
 
     def remove_product_by_id(self, product_id):
         """Removes a product by ID from the index and the underlying data store."""
-        logging.info(f"Removing a product by {product_id} from the index and the underlying data store.")
-        print(f"Removing a product by {product_id} from the index and the underlying data store.")
-        if product_id not in self.products_df.index.values:
+        logging.info(f"Removing product by ID {product_id} from the index and the underlying data store.")
+        print(f"Removing product by ID {product_id} from the index and the underlying data store.")
+
+        if product_id not in self.products_df['product_id'].values:
             raise ValueError(f"Product ID {product_id} not found.")
 
         # Remove the product by dropping the row with the given index label
-        self.products_df = self.products_df.drop(product_id)
-        logging.info(f"Completed removing a product by {product_id} from the index and the underlying data store.")
-        print(f"Completed removing a product by {product_id} from the index and the underlying data store.")
+        self.products_df = self.products_df[self.products_df['product_id'] != product_id]
+        logging.info(f"Product {product_id} removed from DataFrame and index.")
+        print(f"Product {product_id} removed from DataFrame and index.")
 
     def get_all_product_ids(self):
         """Returns all unique product IDs from the products_df DataFrame."""

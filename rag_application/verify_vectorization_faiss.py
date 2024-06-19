@@ -4,12 +4,14 @@ import unittest
 import random
 import numpy as np
 import pandas as pd
+import logging
 from faker import Faker
 
 from rag_application.modules.vector_index_faiss import VectorIndex
 
 fake = Faker()
 searchable_terms = ['APPLE', 'hammer']
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 def generate_random_product_data(num_samples=10000, searchable_keywords=['PRODUCTS', 'EXTRA']):
@@ -119,13 +121,20 @@ class TestVectorIndex(unittest.TestCase):
         print("FAISS index verified")
 
     def test_create_faiss_index(self):
-        """Test creating the index."""
+        """Test creating the FAISS index."""
         self.set_up_data()
 
-        # Perform a simple search to verify the functionality of the index
-        query_result = self.vector_index.search_index("APPLE, hammer", k=3)
+        # Perform a search to verify the functionality of the index
+        query_result = self.vector_index.search_by_product_id(3)
+
+        # Check the type of query_result
         self.assertIsInstance(query_result, tuple, "Search returned unexpected result type.")
-        self.assertGreater(len(query_result[1].tolist()), 0, "No results found for the sample query.")
+
+        # Check if there are results found for the sample query
+        if query_result[1] is not None:
+            self.assertGreater(query_result[1], 0, "No results found for the sample query.")
+        else:
+            self.fail("No results found for the sample query.")
 
     def test_search_by_product_id(self):
         """Test search_by_product_id method."""
@@ -134,12 +143,23 @@ class TestVectorIndex(unittest.TestCase):
         product_id = 3
         embedding, index = self.vector_index.search_by_product_id(product_id)
 
+        # Assert that the embedding is found
         self.assertIsNotNone(embedding, "Embedding not found for product ID.")
+
+        # Assert that the index is valid (not None)
         self.assertIsNotNone(index, "Index not found for product ID.")
 
-        # Verify that the retrieved index can reconstruct the product
-        retrieved_product = self.vector_index._index.reconstruct(int(index))
-        self.assertIsNotNone(retrieved_product, "Product not found in FAISS index.")
+        # Verify that the retrieved embedding is close to the original embedding
+        if index is not None:
+            try:
+                # Perform a search for the same embedding to see if it retrieves the same or similar results
+                D, I = self.vector_index._index.search(np.expand_dims(embedding, axis=0), 1)
+                self.assertEqual(I[0][0], index, "Retrieved index does not match the expected index.")
+
+                # Verify the distance between the embedding and itself
+                self.assertAlmostEqual(D[0][0], 0.0, delta=0.1, msg="Distance to self should be close to zero.")
+            except Exception as e:
+                self.fail(f"Failed to verify product retrieval: {e}")
 
     def test_single_word_search(self):
         """Test searching for nearest neighbors."""
@@ -150,27 +170,33 @@ class TestVectorIndex(unittest.TestCase):
         self.vector_index.create_faiss_index()
         self.assertIsNotNone(self.vector_index._index, "FAISS index is not created.")
 
-        query_string = searchable_terms[0]
-        distances, product_ids = self.vector_index.search_index(query_string, k=5)
+        query_string = "hammer"  # Replace with an actual query term from your data
+        try:
+            distances, product_ids = self.vector_index.search_index(query_string, top_k=5)
 
-        # Ensure distances is a numpy array
-        self.assertIsInstance(distances, np.ndarray, "Distances are not a numpy array.")
-        self.assertEqual(5, len(distances.tolist()), "Number of distances does not match k.")
+            # Ensure distances is a numpy array
+            self.assertIsInstance(distances, np.ndarray, "Distances are not a numpy array.")
+            self.assertEqual(5, len(distances), "Number of distances does not match k.")
 
-        # Ensure product_ids is a list
-        self.assertIsInstance(product_ids, np.ndarray, "Product IDs are not a list.")
-        self.assertGreaterEqual(len(product_ids.tolist()), 1, "No product IDs returned.")
-        self.assertLessEqual(len(product_ids.tolist()), 6, "More than 5 product IDs returned.")
+            # Ensure product_ids is a list
+            self.assertIsInstance(product_ids, list, "Product IDs are not a list.")
+            self.assertGreaterEqual(len(product_ids), 1, "No product IDs returned.")
+            self.assertLessEqual(len(product_ids), 5, "More than 5 product IDs returned.")
 
-        # Ensure each product_id is an integer or string
-        for pid in product_ids.tolist():
-            self.assertIsInstance(pid, (int, str), "Product ID is not an integer or string.")
+            # Ensure each product_id is an integer or string
+            for pid in product_ids:
+                self.assertIsInstance(pid, (int, str), "Product ID is not an integer or string.")
+
+        except RuntimeError as e:
+            self.fail(f"RuntimeError occurred: {e}")
+
+        except ValueError as e:
+            self.fail(f"ValueError occurred: {e}")
 
     def test_search_and_generate_response(self):
         """Test search_and_generate_response method."""
         # Set up data
-        self.vector_index.load_processed_products()
-        self.vector_index.create_faiss_index()
+        self.set_up_data()
 
         # Define a refined query
         refined_query = "hammer"
@@ -181,19 +207,23 @@ class TestVectorIndex(unittest.TestCase):
         # Check the response
         self.assertIsInstance(response, str, "Response is not a string.")
         self.assertGreater(len(response), 0, "Response is empty.")
+        self.assertIn("hammer", response.lower(),
+                      "Query term not found in the response.")  # Check if the query term is in the response
+
+        # Print the response
+        print("Response:", response)
 
     def test_empty_query_vector(self):
         """Test searching with an empty query vector."""
         self.set_up_data()
         with self.assertRaises(ValueError) as context:
-            self.vector_index.search_index("", k=5)
+            self.vector_index.search_index("", top_k=5)
         self.assertEqual(str(context.exception), "Query string cannot be empty.")
 
     def test_uninitialized_index_search(self):
         """Test searching with an uninitialized index."""
-        # self.set_up_data()
         with self.assertRaises(RuntimeError) as context:
-            self.vector_index.search_index(searchable_terms[0], k=5)
+            self.vector_index.search_index(searchable_terms[0], top_k=5)
         self.assertIn("Index is not initialized.", str(context.exception))
 
     def test_find_changed_products(self):
@@ -212,15 +242,12 @@ class TestVectorIndex(unittest.TestCase):
             new_descriptions[product_id] = f"Updated description for product {product_id} from '{old_description}'"
 
         # Test identifying the changed vectors.
-        # Passing the descriptions from first_10_vectors and the new_descriptions dictionary
         changed_product_ids = self.vector_index.find_changed_products(
             first_10_vectors['product_description'], new_descriptions)
 
         expected_changed_product_ids = set(selected_product_ids)
         self.assertEqual(set(changed_product_ids), expected_changed_product_ids,
                          "Incorrect product IDs identified as changed")
-
-    import random
 
     def test_update_product_descriptions(self):
         """Test updating product descriptions and regenerating embeddings using batch updates."""
@@ -247,22 +274,29 @@ class TestVectorIndex(unittest.TestCase):
         self.set_up_data()
 
         # Access product IDs directly from the index
-        all_product_ids = self.vector_index.products_df.index.unique().tolist()
+        all_product_ids = self.vector_index.products_df['product_id']
         product_to_remove = all_product_ids[0]
         other_product_ids = all_product_ids[1:3]  # Using the next two product IDs for verification
 
-        # Print the product ID to be removed
-        print(f"Attempting to remove product with ID: {product_to_remove}")
-
         # Store the initial length of the DataFrame
         initial_length = len(self.vector_index.products_df)
+
+        # Print or log the product ID to be removed
+        logging.info(f"Attempting to remove product with ID: {product_to_remove}")
 
         # Remove a product by dropping the row with the given index label
         self.vector_index.remove_product_by_id(product_to_remove)
 
         # Verify the product has been removed from the DataFrame
-        # Assert that the length of the DataFrame has decreased by one
-        self.assertEqual(len(self.vector_index.products_df), initial_length - 1)
+        self.assertNotIn(product_to_remove, self.vector_index.products_df['product_id'].values,
+                         f"Product {product_to_remove} still exists in DataFrame after removal.")
+        self.assertEqual(len(self.vector_index.products_df), initial_length - 1,
+                         "Length of DataFrame did not decrease by one after removal.")
+
+        # Verify other products remain unaffected
+        for product_id in other_product_ids:
+            self.assertIn(product_id, self.vector_index.products_df.index,
+                          f"Product {product_id} not found in DataFrame after removal operation.")
 
     def verify_embedding_removed(self, product_id):
         """Verifies that the embedding for a given product ID has been removed from the FAISS index."""

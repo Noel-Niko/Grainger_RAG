@@ -228,11 +228,11 @@ class VectorIndex:
         logging.info("Performing the search...")
         distances, indices = self._index.search(query_embedding, top_k)
         logging.info("Search completed.")
-        # Combine the product ID search result with the FAISS search results
-        if id_index is not None:
+        # # Combine the product ID search result with the FAISS search results
+        if id_index:  # Check if id_index is not empty
             # Insert the product ID result at the beginning if it's not already among the top_k results
-            if id_index not in indices[0]:
-                indices[0] = np.insert(indices[0], 0, id_index)
+            if id_index[0] not in indices[0]:  # Use id_index[0] since id_index is now a list
+                indices[0] = np.insert(indices[0], 0, id_index[0])
                 distances[0] = np.insert(distances[0], 0, id_distance)
 
         # Convert distances and indices to lists and trim to top_k results
@@ -326,6 +326,7 @@ class VectorIndex:
             try:
                 product_info = (
                     f"ID: {index}, "
+                    f"Product ID: {self.products_df.loc[index, 'product_id']}, "
                     f"Name: {self.products_df.loc[index, 'product_title']}, "
                     f"Description: {self.products_df.loc[index, 'product_description']}, "
                     f"Key Facts: {self.products_df.loc[index, 'product_bullet_point']}, "
@@ -335,7 +336,7 @@ class VectorIndex:
                 )
                 product_info_list.append(product_info)
             except KeyError:
-                logging.warning(f"Product ID {index} not found in the DataFrame.")
+                logging.warning(f"Product ID {self.products_df.loc[index, 'product_id']} not found in the DataFrame.")
 
         # Join the product information into a single string
         product_info_str = ", ".join(product_info_list)

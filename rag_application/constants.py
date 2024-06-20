@@ -5,6 +5,7 @@ from langchain_core.prompts import ChatPromptTemplate
 
 langchainApiKey = os.getenv('LANGCHAIN_API_KEY')
 chatOpenAiKey = os.getenv('CHAT_OPENAI_KEY')
+email = os.getenv('EMAIL')
 
 initial_question_wrapper = ('I was asked the following question but only have access to data about products and their '
                             'descriptive characteristics. Refine the question to a text string form suitable for '

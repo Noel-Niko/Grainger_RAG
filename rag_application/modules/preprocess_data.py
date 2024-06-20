@@ -1,9 +1,12 @@
 import re
+import time
+
 import numpy as np
 import os
 import logging
 import pandas as pd
 import nltk
+import requests
 from langid import langid
 from translate import Translator
 from nltk.corpus import stopwords
@@ -19,6 +22,44 @@ download('punkt')
 # Configure logging
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
+
+
+def translate_with_email(text):
+    """Provides email address to increase free translation limit from 5,000 to 50,000"""
+    detected_language, _ = langid.classify(text)
+    if detected_language != 'en':
+        logging.info(f"Translating from {detected_language} to English")
+        initial_text = text
+        params = {
+            'q': text,
+            'langpair': f"{detected_language}|en",
+            'de': constants.email
+        }
+        retries = 0
+        max_retries = 3
+        retry_delay = 1
+        while retries < max_retries:
+            response = requests.get('https://api.mymemory.translated.net/get', params=params)
+            if response.status_code == 200:
+                data = response.json()
+                translated_text = data['responseData']['translatedText']
+                if translated_text:
+                    translated_text = translated_text.lower()
+                    logging.info(f"Translated: {initial_text} to {translated_text}")
+
+                else:
+                    logging.warning("Received empty translation result.")
+                    break
+            elif response.status_code == 429:
+                logging.warning("Rate limit exceeded.")
+                time.sleep(retry_delay)
+                retries += 3
+            else:
+                logging.error(f"Translation failed with status code: {response.status_code}")
+                logging.info("Retrying in {} seconds.".format(retry_delay))
+                time.sleep(retry_delay)
+                retries += 1
+    return None
 
 
 class DataPreprocessor:
@@ -44,10 +85,7 @@ class DataPreprocessor:
             detected_language, _ = langid.classify(text)
             if detected_language != 'en':
                 logging.info(f"Translating from {detected_language} to English")
-                initial_text = text
-                translator = Translator(to_lang="en", from_lang=detected_language)
-                text = translator.translate(text).lower()
-                logging.info(f"Translated: {initial_text} to {text}")
+                text = translate_with_email(text).lower()
 
             # Expand contractions (e.g., "can't" -> "cannot")
             text = contractions.fix(text)

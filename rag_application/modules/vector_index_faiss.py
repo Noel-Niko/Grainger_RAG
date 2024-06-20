@@ -212,6 +212,12 @@ class VectorIndex:
         if not query_text.strip():
             raise ValueError("Query string cannot be empty.")
 
+        logging.info(f"Searching by product id: {query_text}")
+        # id_distances, id_indices = self.search_by_product_id(query_text)
+        _, id_index = self.search_by_product_id(query_text)
+        id_distance = 0.0 if id_index is not None else float('inf')
+
+        logging.info(f"Searching product titles for: {query_text}")
         logging.info(f"Query text: {query_text.lower()}")
 
         # Encode query_text to get query_embedding
@@ -222,9 +228,15 @@ class VectorIndex:
         logging.info("Performing the search...")
         distances, indices = self._index.search(query_embedding, top_k)
         logging.info("Search completed.")
+        # Combine the product ID search result with the FAISS search results
+        if id_index is not None:
+            # Insert the product ID result at the beginning if it's not already among the top_k results
+            if id_index not in indices[0]:
+                indices[0] = np.insert(indices[0], 0, id_index)
+                distances[0] = np.insert(distances[0], 0, id_distance)
 
-        # Convert distances and indices to Python lists
-        return list(indices[0]), list(distances[0])
+        # Convert distances and indices to lists and trim to top_k results
+        return list(indices[0][:top_k]), list(distances[0][:top_k])
 
     def update_embeddings_for_changed_products(self, changed_product_ids: List[int]):
         """
@@ -297,11 +309,11 @@ class VectorIndex:
                 return embedding_np, index
             else:
                 logging.error("No valid nearest neighbor found in the FAISS index.")
-                return embedding_np, None
+                return [], []
 
         except KeyError:
             logging.error(f"Embedding not found for product ID: {product_id}")
-            return None, None
+            return [], []
 
     def search_and_generate_response(self, refined_query: str, llm, k: int = 15) -> str:
         # Search the FAISS index with the refined query

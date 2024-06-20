@@ -1,16 +1,16 @@
-import logging
-import os
-import langid
-import nltk
-import numpy as np
-import pandas as pd
-import spacy
 import re
-from bs4 import BeautifulSoup
-from nltk import download
+import numpy as np
+import os
+import logging
+import pandas as pd
+import nltk
+from langid import langid
+from translate import Translator
 from nltk.corpus import stopwords
-from nltk.tokenize import sent_tokenize
-
+from nltk import download
+from nltk.stem import SnowballStemmer
+from many_stop_words import get_stop_words
+import contractions
 from rag_application import constants
 
 download('stopwords')
@@ -30,55 +30,47 @@ class DataPreprocessor:
 
     def normalize_text(self, text):
         logging.info("Normalizing text")
+        print("Normalizing text")
         if isinstance(text, str):
             text = text.lower()
-            # Preprocessing steps (HTML tags removal, newline removal, etc.)
-            soup = BeautifulSoup(text, "html.parser")
-            text = soup.get_text()
+            # Removes HTML tags
+            text = re.sub(r'<.*?>', '', text)
+            # Removes newline characters
+            text = text.replace('\n', ' ').replace('\r', '')
+            # Remove emojis
+            text = re.sub(r'[^\w\s]', '', text)
 
-            # Remove newline characters and extra whitespace
-            text = re.sub(r'\s+', ' ', text).strip()
-
-            # Language detection
+            # Translation logic
             detected_language, _ = langid.classify(text)
-            logging.info(f"Detected language: {detected_language}")
+            if detected_language != 'en':
+                logging.info(f"Translating from {detected_language} to English")
+                initial_text = text
+                translator = Translator(to_lang="en", from_lang=detected_language)
+                text = translator.translate(text).lower()
+                logging.info(f"Translated: {initial_text} to {text}")
 
-            # TODO: Translate to English if not already in English
-            # if detected_language != 'en':
-            #     logging.info(f"Translating from {detected_language} to English")
-            #     text = translate_text(text, src=detected_language, dest='en')
+            # Expand contractions (e.g., "can't" -> "cannot")
+            text = contractions.fix(text)
+            tokens = nltk.word_tokenize(text)
+            english_stop_words = set(stopwords.words('english'))
+            spanish_stop_words = set(stopwords.words('spanish'))
+            japanese_stop_words = set(get_stop_words('ja'))
+            # Combine English, Spanish, and Japanese stopwords
+            combined_stop_words = english_stop_words.union(spanish_stop_words).union(japanese_stop_words)
+            filtered_tokens = [token for token in tokens if token not in combined_stop_words]
 
-            # Sentence tokenization
-            sentences = sent_tokenize(text)
-            tokens = []
-            for sentence in sentences:
-                tokens.extend(nltk.word_tokenize(sentence))
+            # Stemming: Reduce words to their root form
+            stemmer = SnowballStemmer('english')
+            stemmed_tokens = [stemmer.stem(token) for token in filtered_tokens]
 
-            # Filtering stopwords
-            stop_words = set(stopwords.words(detected_language) if detected_language in stopwords.fileids() else set())
-            filtered_tokens = [token for token in tokens if token not in stop_words]
-
-            # Load spaCy model based on detected language
-            nlp = self.load_spacy_model(detected_language)
-            doc = nlp(' '.join(filtered_tokens))
-
-            # Lemmatization
-            lemmatized_tokens = [token.lemma_ for token in doc]
-            normalized_text = ' '.join(lemmatized_tokens)
-
+            normalized_text = ' '.join(stemmed_tokens)
             return normalized_text
         else:
             logging.error("Expected a string while normalizing text.")
+            print("Expected a string while normalizing text.")
+            # Returning an empty string for non-string inputs instead of raising an error
+            # to allow processing of remaining data
             return ""
-
-    # Load spaCy model based on language
-    def load_spacy_model(self, lang):
-        if lang == 'es':
-            return spacy.load('es_core_news_sm')  # Spanish model
-        elif lang == 'ja':
-            return spacy.load('ja_core_news_sm')  # Japanese model
-        else:
-            return spacy.load('en_core_web_sm')  # Default to English
 
     def normalize_text_batch(self, batch_series):
         logging.info("Normalizing text")
@@ -118,7 +110,7 @@ class DataPreprocessor:
             # Data Cleaning
             self.examples_df = self.examples_df.dropna().drop_duplicates()
             # TODO: REDUCING THE SIZE OF THE FILE FOR INTEGRATION TESTING  - .sample(frac=0.1)
-            self.products_df = self.products_df.dropna().drop_duplicates() #.sample(frac=0.1)
+            self.products_df = self.products_df.dropna().drop_duplicates().sample(frac=0.001)
 
             self.sources_df = self.sources_df.dropna().drop_duplicates()
 

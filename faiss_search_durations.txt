@@ -54,3 +54,6 @@ FAISS search duration: 0.54 seconds, Timestamp: 2024-06-18 17:29:29.410284
 FAISS search duration: 0.50 seconds, Timestamp: 2024-06-18 17:30:47.362518
 FAISS search duration: 0.55 seconds, Timestamp: 2024-06-18 17:31:02.393596
 FAISS search duration: 3.24 seconds, Timestamp: 2024-06-18 18:09:11.006037
+FAISS search duration: 2.01 seconds, Timestamp: 2024-06-20 08:10:04.437293
+FAISS search duration: 0.60 seconds, Timestamp: 2024-06-20 08:10:32.420253
+FAISS search duration: 0.54 seconds, Timestamp: 2024-06-20 08:13:36.141046

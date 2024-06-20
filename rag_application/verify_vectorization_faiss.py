@@ -181,7 +181,7 @@ class TestVectorIndex(unittest.TestCase):
 
             # Ensure each product_id is an integer or string
             for pid in product_ids:
-                self.assertIsInstance(pid, (int, str), "Product ID is not an integer or string.")
+                self.assertIsInstance(pid, (np.int64, int, str), "Product ID is not an integer or string.")
 
         except RuntimeError as e:
             self.fail(f"RuntimeError occurred: {e}")

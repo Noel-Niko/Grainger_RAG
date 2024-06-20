@@ -212,7 +212,9 @@ class VectorIndex:
         if not query_text.strip():
             raise ValueError("Query string cannot be empty.")
 
-        logging.info(f"Searching by product id: {query_text}")
+        # Convert to uppercase for Product ID's which are stored in uppercase.
+        logging.info(f"Searching by product id: {query_text.upper()}")
+        
         # id_distances, id_indices = self.search_by_product_id(query_text)
         _, id_index = self.search_by_product_id(query_text)
         id_distance = 0.0 if id_index is not None else float('inf')

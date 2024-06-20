@@ -7,11 +7,12 @@ langchainApiKey = os.getenv('LANGCHAIN_API_KEY')
 chatOpenAiKey = os.getenv('CHAT_OPENAI_KEY')
 email = os.getenv('EMAIL')
 
-initial_question_wrapper = ('I was asked the following question but only have access to data about products and their '
-                            'descriptive characteristics. Refine the question to a text string of just the keywords '
-                            'such as the nouns and adjectives only suitable for searching my products faiss vector '
-                            'index. Always include the relevant product_id when referencing an item. QUESTION:')
-prompt = ChatPromptTemplate.from_template("""Answer the following question based only on the provided context:
+initial_question_wrapper = ('You are a chat-bot answering product queries. ALWAYS include the product_id with the '
+                            'product title in your answers. Refine the question to a text string of just the product '
+                            'title which may be a short sentence, or if not a product title, then the keywords such '
+                            'as the nouns and adjectives.  QUESTION:')
+prompt = ChatPromptTemplate.from_template("""Answer the following question based only on the provided context but 
+provide as much information as you can:
 
         <context>
         {context}

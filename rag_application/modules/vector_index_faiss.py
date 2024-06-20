@@ -126,7 +126,9 @@ class VectorIndex:
             except Exception as e:
                 logging.error(f"An error occurred during embedding extraction: {e}")
         logging.info("Returning embeddings.")
-        return np.array(embeddings)
+        # Normalize along the embedding axis
+        embeddings = normalize(np.array(embeddings), axis=1)
+        return embeddings
 
     def create_faiss_index(self):
         """Creates an FAISS IVF-HC index for efficient vector similarity search with batch processing."""
@@ -134,8 +136,7 @@ class VectorIndex:
 
         combined_texts = self.products_df['combined_text'].tolist()
         embeddings = self.encode_text_to_embedding(combined_texts)
-        # Normalize along the embedding axis
-        embeddings = normalize(embeddings, axis=1)
+
         # Update embeddings_dict with product_id as key and embedding as value
         for i, product_id in enumerate(self.products_df['product_id']):
             self.embeddings_dict[product_id] = embeddings[i]
@@ -211,10 +212,10 @@ class VectorIndex:
         if not query_text.strip():
             raise ValueError("Query string cannot be empty.")
 
-        logging.info(f"Query text: {query_text}")
+        logging.info(f"Query text: {query_text.lower()}")
 
         # Encode query_text to get query_embedding
-        query_embedding = self.encode_text_to_embedding([query_text])
+        query_embedding = self.encode_text_to_embedding([query_text.lower()])
         logging.info(f"Query embedding shape: {query_embedding.shape}")
 
         # Perform the search in FAISS index
@@ -305,7 +306,7 @@ class VectorIndex:
     def search_and_generate_response(self, refined_query: str, llm, k: int = 15) -> str:
         # Search the FAISS index with the refined query
         logging.info(f"Searching the index for: {refined_query}")
-        distances, relevant_product_indices = self.search_index(refined_query, top_k=k)
+        relevant_product_indices, distances = self.search_index(refined_query.lower(), top_k=k)
 
         # Extract the product information based on the returned indices
         product_info_list = []
@@ -319,6 +320,7 @@ class VectorIndex:
                     f"Brand: {self.products_df.loc[index, 'product_brand']}, "
                     f"Color: {self.products_df.loc[index, 'product_color']}, "
                     f"Location: {self.products_df.loc[index, 'product_locale']}"
+                    f"Combined Text: {self.products_df.loc[index, 'combined_text']}"
                 )
                 product_info_list.append(product_info)
             except KeyError:

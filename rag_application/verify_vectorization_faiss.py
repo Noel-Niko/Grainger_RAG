@@ -10,7 +10,7 @@ from faker import Faker
 from rag_application.modules.vector_index_faiss import VectorIndex
 
 fake = Faker()
-searchable_terms = ['APPLE', 'hammer']
+searchable_term = ['apple']
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
@@ -31,6 +31,7 @@ def generate_random_product_data(num_samples=10000, searchable_keywords=['PRODUC
         combined_text[i] += f' {keyword}'
 
     product_data = pd.DataFrame({
+        'combined_text': combined_text,
         'product_id': product_ids,
         'product_title': product_titles,
         'product_description': product_descriptions,
@@ -38,7 +39,6 @@ def generate_random_product_data(num_samples=10000, searchable_keywords=['PRODUC
         'product_brand': product_brands,
         'product_color': product_colors,
         'product_locale': product_locales,
-        'combined_text': combined_text
     })
 
     # Generate additional entries with varied combinations
@@ -51,16 +51,15 @@ def generate_random_product_data(num_samples=10000, searchable_keywords=['PRODUC
         # Choose a random keyword from the list
         keyword = searchable_keywords[i % len(searchable_keywords)]
         # Introduce additional random variations
-        entry_with_keyword['product_title'] = fake.catch_phrase()
+        entry_with_keyword['product_title'] = f"{keyword} - {fake.catch_phrase()}"
         entry_with_keyword['product_description'] = fake.text(max_nb_chars=200)
         entry_with_keyword['product_bullet_point'] = f"New key feature {i + 1}: {fake.word()}."
         entry_with_keyword['product_brand'] = fake.company()
         entry_with_keyword['product_color'] = fake.color_name()
         entry_with_keyword['product_locale'] = fake.city()
-
         entry_with_keyword['product_id'] = len(product_data) + i + 1
         entry_with_keyword[
-            'combined_text'] = f"{entry_with_keyword['product_id']}-{keyword} - {entry_with_keyword['product_title']} - {entry_with_keyword['product_description']}"
+            'combined_text'] = f"{entry_with_keyword['product_title']}"
 
         additional_entries.append(entry_with_keyword)
 
@@ -76,7 +75,7 @@ class TestVectorIndex(unittest.TestCase):
         """Set up the test environment."""
         # ********  Generate dummy product data  ********
         dummy_product_data_untrained = generate_random_product_data(num_samples=1000,
-                                                                    searchable_keywords=searchable_terms)
+                                                                    searchable_keywords=searchable_term)
         dummy_product_data_trained = dummy_product_data_untrained.dropna().drop_duplicates()
 
         # Create a temporary file and write the dummy product data to it
@@ -170,7 +169,7 @@ class TestVectorIndex(unittest.TestCase):
         self.vector_index.create_faiss_index()
         self.assertIsNotNone(self.vector_index._index, "FAISS index is not created.")
 
-        query_string = "hammer"  # Replace with an actual query term from your data
+        query_string = "APPLE"  # Replace with an actual query term from your data
         try:
             distances, product_ids = self.vector_index.search_index(query_string, top_k=5)
 
@@ -199,7 +198,7 @@ class TestVectorIndex(unittest.TestCase):
         self.set_up_data()
 
         # Define a refined query
-        refined_query = "hammer"
+        refined_query = "apple"
 
         # Call the method
         response = self.vector_index.search_and_generate_response(refined_query, llm=None, k=5)
@@ -207,8 +206,8 @@ class TestVectorIndex(unittest.TestCase):
         # Check the response
         self.assertIsInstance(response, str, "Response is not a string.")
         self.assertGreater(len(response), 0, "Response is empty.")
-        self.assertIn("hammer", response.lower(),
-                      "Query term not found in the response.")  # Check if the query term is in the response
+        self.assertIn("apple", response.lower(),
+                      "Query term not found in the response.")
 
         # Print the response
         print("Response:", response)
@@ -223,7 +222,7 @@ class TestVectorIndex(unittest.TestCase):
     def test_uninitialized_index_search(self):
         """Test searching with an uninitialized index."""
         with self.assertRaises(RuntimeError) as context:
-            self.vector_index.search_index(searchable_terms[0], top_k=5)
+            self.vector_index.search_index(searchable_term[0], top_k=5)
         self.assertIn("Index is not initialized.", str(context.exception))
 
     def test_find_changed_products(self):

@@ -46,10 +46,10 @@ def translate_with_email(text):
                 if translated_text:
                     translated_text = translated_text.lower()
                     logging.info(f"Translated: {initial_text} to {translated_text}")
-
+                    return translated_text
                 else:
                     logging.warning("Received empty translation result.")
-                    break
+                    return initial_text
             elif response.status_code == 429:
                 logging.warning("Rate limit exceeded.")
                 time.sleep(retry_delay)
@@ -59,7 +59,6 @@ def translate_with_email(text):
                 logging.info("Retrying in {} seconds.".format(retry_delay))
                 time.sleep(retry_delay)
                 retries += 1
-    return None
 
 
 class DataPreprocessor:
@@ -79,13 +78,13 @@ class DataPreprocessor:
             # Removes newline characters
             text = text.replace('\n', ' ').replace('\r', '')
             # Remove emojis
-            text = re.sub(r'[^\w\s]', '', text)
+            text: str = re.sub(r'[^\w\s]', '', text)
 
             # Translation logic
             detected_language, _ = langid.classify(text)
             if detected_language != 'en':
                 logging.info(f"Translating from {detected_language} to English")
-                text = translate_with_email(text).lower()
+                text = translate_with_email(text.lower())
 
             # Expand contractions (e.g., "can't" -> "cannot")
             text = contractions.fix(text)

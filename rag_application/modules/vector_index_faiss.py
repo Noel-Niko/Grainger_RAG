@@ -321,20 +321,24 @@ class VectorIndex:
         relevant_product_indices, distances = self.search_index(refined_query.lower(), top_k=k)
 
         # Extract the product information based on the returned indices
+        logging.info(f"Extracting product details.")
         product_info_list = []
         for index in relevant_product_indices:
             try:
-                product_info = (
-                    f"ID: {index}, "
-                    f"Product ID: {self.products_df.loc[index, 'product_id']}, "
-                    f"Name: {self.products_df.loc[index, 'product_title']}, "
-                    f"Description: {self.products_df.loc[index, 'product_description']}, "
-                    f"Key Facts: {self.products_df.loc[index, 'product_bullet_point']}, "
-                    f"Brand: {self.products_df.loc[index, 'product_brand']}, "
-                    f"Color: {self.products_df.loc[index, 'product_color']}, "
-                    f"Location: {self.products_df.loc[index, 'product_locale']}"
-                )
-                product_info_list.append(product_info)
+                if index >= 0:  # Check if a valid index was found
+                    product_info = (
+                        f"ID: {index}, "
+                        f"Product ID: {self.products_df.loc[index, 'product_id']}, "
+                        f"Name: {self.products_df.loc[index, 'product_title']}, "
+                        f"Description: {self.products_df.loc[index, 'product_description']}, "
+                        f"Key Facts: {self.products_df.loc[index, 'product_bullet_point']}, "
+                        f"Brand: {self.products_df.loc[index, 'product_brand']}, "
+                        f"Color: {self.products_df.loc[index, 'product_color']}, "
+                        f"Location: {self.products_df.loc[index, 'product_locale']}"
+                    )
+                    product_info_list.append(product_info)
+                else:
+                    logging.error(f"relevant_product_indices includes an invalid index of: {index}")
             except KeyError:
                 logging.warning(f"Product ID {self.products_df.loc[index, 'product_id']} not found in the DataFrame.")
 

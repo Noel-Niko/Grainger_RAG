@@ -122,13 +122,6 @@ class DataPreprocessor:
 
             self.sources_df = self.sources_df.dropna().drop_duplicates()
 
-            # Feature Extraction
-            logging.info("Creating combined_text feature.")
-            self.products_df['combined_text'] = (self.products_df['product_title']
-                                                 + " " + self.products_df['product_description']
-                                                 + " " + self.products_df['product_bullet_point']
-                                                 + " " + self.products_df['product_brand'])
-
             # 'product_id' is both an index and a column
             self.products_df.reset_index(inplace=True, drop=False)
 
@@ -136,25 +129,25 @@ class DataPreprocessor:
 
             # Apply the normalize_text function
             try:
-                # Normalize combined_text
-                logging.info("Normalizing combined_text.")
-                print("Normalizing combined_text.")
+                # Normalize product_title
+                logging.info("Normalizing product_title.")
+                print("Normalizing product_title.")
                 batch_size = 1000
-                num_batches = int(np.ceil(len(self.products_df['combined_text']) / batch_size))
+                num_batches = int(np.ceil(len(self.products_df['product_title']) / batch_size))
                 for i in range(num_batches):
                     logging.info(f"Batch {i + 1}/{num_batches}")
                     print(f"Batch {i + 1}/{num_batches}")
                     start_idx = i * batch_size
                     end_idx = (i + 1) * batch_size
                     # Using iloc for positional indexing to avoid KeyError
-                    batch = self.products_df.iloc[start_idx:end_idx]['combined_text'].astype(str)
+                    batch = self.products_df.iloc[start_idx:end_idx]['product_title'].astype(str)
                     # Assigning the normalized text back to the DataFrame using iloc for consistency
                     self.products_df.iloc[start_idx:end_idx,
-                    self.products_df.columns.get_loc('combined_text')] = self.normalize_text_batch(batch).values
+                    self.products_df.columns.get_loc('product_title')] = self.normalize_text_batch(batch).values
 
                 # Check the first few rows to confirm the dtype is an 'object' (which represents strings in pandas)
-                logging.info(self.products_df['combined_text'].head())
-                print(self.products_df['combined_text'].head())
+                logging.info(self.products_df['product_title'].head())
+                print(self.products_df['product_title'].head())
             except Exception as e:
                 logging.error(f"Exception occurred during normalization: {e}")
 

@@ -134,8 +134,8 @@ class VectorIndex:
         """Creates an FAISS IVF-HC index for efficient vector similarity search with batch processing."""
         logging.info("Creating an FAISS IVF-HC index for efficient vector similarity search with batch processing.")
 
-        combined_texts = self.products_df['combined_text'].tolist()
-        embeddings = self.encode_text_to_embedding(combined_texts)
+        titles = self.products_df['product_title'].tolist()
+        embeddings = self.encode_text_to_embedding(titles)
 
         # Update embeddings_dict with product_id as key and embedding as value
         for i, product_id in enumerate(self.products_df['product_id']):
@@ -226,23 +226,23 @@ class VectorIndex:
         # Convert distances and indices to Python lists
         return list(indices[0]), list(distances[0])
 
-    def update_embeddings_for_changed_products(self, changed_product_ids: Set[int]):
+    def update_embeddings_for_changed_products(self, changed_product_ids: List[int]):
         """
         Updates the embeddings for the specified changed products and updates the FAISS index.
         """
         logging.info("Updating embeddings for changed products.")
         changed_products = self.products_df[self.products_df['product_id'].isin(changed_product_ids)]
-        combined_texts = changed_products['combined_text'].tolist()
-        new_embeddings = self.encode_text_to_embedding(combined_texts)
+        titles = changed_products['product_title'].tolist()
+        new_embeddings = self.encode_text_to_embedding(titles)
 
         # Update embeddings_dict with new embeddings
         for i, product_id in enumerate(changed_products['product_id']):
             self.embeddings_dict[product_id] = new_embeddings[i]
 
         logging.info("Embeddings updated in dictionary. Updating FAISS index...")
-
-        # Re-create the FAISS index
-        self.create_faiss_index()
+        # Remove old embeddings for the changed products
+        old_indices = np.array(changed_product_ids).astype(np.int64)
+        self._index.remove_ids(old_indices)
 
         # Add new embeddings to the index
         new_embeddings_np = np.array(new_embeddings)
@@ -320,7 +320,6 @@ class VectorIndex:
                     f"Brand: {self.products_df.loc[index, 'product_brand']}, "
                     f"Color: {self.products_df.loc[index, 'product_color']}, "
                     f"Location: {self.products_df.loc[index, 'product_locale']}"
-                    f"Combined Text: {self.products_df.loc[index, 'combined_text']}"
                 )
                 product_info_list.append(product_info)
             except KeyError:
@@ -374,7 +373,35 @@ class VectorIndex:
 
         return changed_products
 
-    def update_product_descriptions(self, updates):
+    # def update_product_descriptions(self, new_descriptions_map):
+    #     """
+    #     Batch updates the descriptions of multiple products and regenerates their embeddings.
+    #
+    #     Parameters:
+    #     - new_descriptions_map (dict): Mapping of product IDs to their new descriptions.
+    #
+    #     Raises:
+    #     - KeyError: If a product ID in updates is not found in the DataFrame.
+    #     """
+    #     logging.info(
+    #         "Making batch updates for the descriptions of multiple products and regenerating their embeddings.")
+    #     print("Making batch updates for the descriptions of multiple products and regenerating their embeddings.")
+    #
+    #     # Ensure product IDs are found in the DataFrame
+    #     missing_ids = [product_id for product_id in new_descriptions_map if product_id not in self.products_df['product_id'].values]
+    #     if missing_ids:
+    #         raise KeyError(f"Product IDs {missing_ids} not found in the DataFrame.")
+    #
+    #     # Update descriptions in the DataFrame
+    #     self.products_df.loc[self.products_df['product_id'].isin(new_descriptions_map.keys()), 'product_description'] = \
+    #         self.products_df['product_id'].map(new_descriptions_map)
+    #
+    #     # Identify changed products
+    #     changed_products = list(new_descriptions_map.keys())
+    #
+    #     if changed_products:
+    #         self.update_embeddings_for_changed_products(set(changed_products))
+    def update_product_descriptions(self, new_descriptions_map):
         """
         Batch updates the descriptions of multiple products and regenerates their embeddings.
 
@@ -388,22 +415,21 @@ class VectorIndex:
             "Making batch updates for the descriptions of multiple products and regenerating their embeddings.")
         print("Making batch updates for the descriptions of multiple products and regenerating their embeddings.")
 
-        # Find products whose descriptions have changed
-        changed_products = self.find_changed_products(
-            {pid: row['product_description'] for pid, row in self.products_df.iterrows()}, updates)
-        logging.info(f"Changed products list: {str(list(changed_products))}")
-        print(f"Changed products list: {str(list(changed_products))}")
+        # Ensure product IDs are found in the DataFrame
+        missing_ids = [product_id for product_id in new_descriptions_map if product_id not in self.products_df['product_id'].values]
+        if missing_ids:
+            raise KeyError(f"Product IDs {missing_ids} not found in the DataFrame.")
 
         # Update descriptions in the DataFrame
-        for product_id, new_description in updates.items():
-            if product_id not in self.products_df['product_id'].values:
-                raise KeyError(f"Product ID {product_id} not found in the DataFrame.")
-            self.products_df.loc[self.products_df['product_id'] == product_id, 'product_description'] = new_description
-            self.products_df.loc[self.products_df['product_id'] == product_id, 'combined_text'] = \
-                f"{self.products_df.loc[self.products_df['product_id'] == product_id, 'product_title'].values[0]} {new_description}"
+        self.products_df.set_index('product_id', inplace=True)
+        self.products_df.loc[new_descriptions_map.keys(), 'product_description'] = pd.Series(new_descriptions_map)
+        self.products_df.reset_index(inplace=True)
+
+        # Identify changed products
+        changed_products = list(new_descriptions_map.keys())
 
         if changed_products:
-            self.update_embeddings_for_changed_products(set(changed_products))
+            self.update_embeddings_for_changed_products(list(changed_products))
 
 
 if __name__ == "__main__":

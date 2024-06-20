@@ -54,7 +54,7 @@
 
 
 ### LOCAL INSTALL AND RUN
-  1. Obtain and update constants.py with api key  
+  1. Obtain and add api key env variable.
   2. Create a local conda env with python 3.10
   3. Download https://github.com/amazon-science/esci-data/blob/main/shopping_queries_dataset/shopping_queries_dataset_products.parquet
       - Place it in BOTH:

@@ -64,6 +64,7 @@
   6. Run start_local.sh
 
     NOTE: Pickle, Singleton design pattern, and streamlit state annotation are used so that while the program is running the creation of the initial faiss index is persisted and reused to prevent the need to recreate. Updates can be made to that existing index through the methods included and the pickle file replace with the updated version.
+    NOTE: prompt_refiner.py was created to ensure the initial prompt to the FAISS search is matched to the data.
 
   
 ### LOCAL UNIT TESTING  

@@ -212,16 +212,15 @@ class VectorIndex:
         if not query_text.strip():
             raise ValueError("Query string cannot be empty.")
 
-        # Convert to uppercase for Product ID's which are stored in uppercase.
+        # Search By Id: Convert to uppercase for Product ID's which are stored in uppercase.
         logging.info(f"Searching by product id: {query_text.upper()}")
-        
-        # id_distances, id_indices = self.search_by_product_id(query_text)
         _, id_index = self.search_by_product_id(query_text)
-        id_distance = 0.0 if id_index is not None else float('inf')
+        id_distance = 0.0 if id_index is not None else None
+        logging.info(f"Search by product id returned: {id_index}")
 
+        # Search By Title
         logging.info(f"Searching product titles for: {query_text}")
         logging.info(f"Query text: {query_text.lower()}")
-
         # Encode query_text to get query_embedding
         query_embedding = self.encode_text_to_embedding([query_text.lower()])
         logging.info(f"Query embedding shape: {query_embedding.shape}")
@@ -230,15 +229,31 @@ class VectorIndex:
         logging.info("Performing the search...")
         distances, indices = self._index.search(query_embedding, top_k)
         logging.info("Search completed.")
-        # # Combine the product ID search result with the FAISS search results
-        if id_index:  # Check if id_index is not empty
-            # Insert the product ID result at the beginning if it's not already among the top_k results
-            if id_index[0] not in indices[0]:  # Use id_index[0] since id_index is now a list
-                indices[0] = np.insert(indices[0], 0, id_index[0])
-                distances[0] = np.insert(distances[0], 0, id_distance)
 
-        # Convert distances and indices to lists and trim to top_k results
-        return list(indices[0][:top_k]), list(distances[0][:top_k])
+        # Initialize variables to store combined results
+        combined_indices = []
+        combined_distances = []
+
+        # Check if the search returned any results
+        if len(indices[0]) > 0:
+            combined_indices = list(indices[0])
+            combined_distances = list(distances[0])
+
+            # Assuming id_index is a single integer
+            if id_index is not None and id_index not in combined_indices:
+                combined_indices.insert(0, id_index)
+                combined_distances.insert(0, id_distance)
+        else:
+            logging.warning("FAISS search returned no results.")
+
+        # Trim to top_k results if necessary
+        combined_indices = combined_indices[:top_k]
+        combined_distances = combined_distances[:top_k]
+
+        # Filter out any non-integer values from combined_indices
+        combined_indices = [idx for idx in combined_indices if isinstance(idx, np.int64)]
+
+        return combined_indices, combined_distances
 
     def update_embeddings_for_changed_products(self, changed_product_ids: List[int]):
         """
@@ -313,17 +328,18 @@ class VectorIndex:
                 return embedding_np, index
             else:
                 logging.error("No valid nearest neighbor found in the FAISS index.")
-                return [], []
+                return None, None
 
         except KeyError:
             logging.error(f"Embedding not found for product ID: {product_id}")
-            return [], []
+            return None, None
 
     def search_and_generate_response(self, refined_query: str, llm, k: int = 15) -> str:
         # Search the FAISS index with the refined query
         logging.info(f"Searching the index for: {refined_query}")
         relevant_product_indices, distances = self.search_index(refined_query.lower(), top_k=k)
-
+        logging.info(f"Returning: relevant_product_indices[{relevant_product_indices}]")
+        logging.info(f"Returning: distances[{distances}]")
         # Extract the product information based on the returned indices
         logging.info(f"Extracting product details.")
         product_info_list = []

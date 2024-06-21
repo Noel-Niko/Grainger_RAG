@@ -3,6 +3,7 @@ channels:
   - conda-forge
   - pytorch
   - moustik
+  - huggingface
 dependencies:
   - python=3.8
   - mkl
@@ -27,4 +28,4 @@ dependencies:
   - httpx=0.27.0
   - contractions
   - requests
-
+  - huggingface::tokenizers

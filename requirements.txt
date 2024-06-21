@@ -1,2 +1,4 @@
 many-stop-words
 contractions
+langid
+translate

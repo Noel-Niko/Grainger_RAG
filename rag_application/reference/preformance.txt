@@ -1,0 +1,115 @@
+Tokenization Branch(first and slower) Versus Faster Branches Without the Advanced Tokenization(second)
+
+HTML Parsing and Normalization:
+	•	BeautifulSoup (First): Comprehensive but slower due to parsing and extracting text from HTML.
+	•	Regex (Second): Fast but less accurate for complex HTML structures.
+Language Detection and Model Loading:
+	•	Langid and SpaCy (First): Adds significant overhead due to model loading and language detection.
+	•	No Detection (Second): Directly processes text without additional language-based processing.
+Tokenization and Stopword Filtering:
+	•	Dynamic Language-Based Stopwords (First): Slower due to conditional checks and dynamic loading.
+	•	Predefined Stopwords (Second): Faster by directly using combined stopwords set.
+Text Processing (Lemmatization vs. Stemming):
+	•	Lemmatization with SpaCy (First): Provides accurate base forms but is computationally intensive.
+	•	Stemming with SnowballStemmer (Second): Faster but less accurate than lemmatization.
+Simplified Steps in the Faster Implementation:
+	1	HTML Tag Removal: Regex-based tag removal.
+	2	Whitespace and Emoji Handling: Direct string manipulation and regex for removing non-alphanumeric characters.
+	3	Tokenization: Direct word tokenization.
+	4	Stopword Filtering: Preloaded stopwords for multiple languages.
+	5	Stemming: Lightweight stemming for faster processing
+
+
+Normalization in Tokenization Branch:
+import logging
+import os
+import langid
+import nltk
+import numpy as np
+import pandas as pd
+import spacy
+import re
+from bs4 import BeautifulSoup
+from nltk import download
+from nltk.corpus import stopwords
+from nltk.tokenize import sent_tokenize
+
+from rag_application import constants
+
+download('stopwords')
+download('punkt')
+
+# Configure logging
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
+
+
+class DataPreprocessor:
+    def __init__(self):
+        self.examples_df = None
+        self.products_df = None
+        self.sources_df = None
+        self.preprocessing_complete = False
+
+    def normalize_text(self, text):
+        logging.info("Normalizing text")
+        if isinstance(text, str):
+            text = text.lower()
+            # Preprocessing steps (HTML tags removal, newline removal, etc.)
+            soup = BeautifulSoup(text, "html.parser")
+            text = soup.get_text()
+
+            # Remove newline characters and extra whitespace
+            text = re.sub(r'\s+', ' ', text).strip()
+
+            # Language detection
+            detected_language, _ = langid.classify(text)
+            logging.info(f"Detected language: {detected_language}")
+
+            # TODO: Translate to English if not already in English
+            # if detected_language != 'en':
+            #     logging.info(f"Translating from {detected_language} to English")
+            #     text = translate_text(text, src=detected_language, dest='en')
+
+            # Sentence tokenization
+            sentences = sent_tokenize(text)
+            tokens = []
+            for sentence in sentences:
+                tokens.extend(nltk.word_tokenize(sentence))
+
+            # Filtering stopwords
+            stop_words = set(stopwords.words(detected_language) if detected_language in stopwords.fileids() else set())
+            filtered_tokens = [token for token in tokens if token not in stop_words]
+
+            # Load spaCy model based on detected language
+            nlp = self.load_spacy_model(detected_language)
+            doc = nlp(' '.join(filtered_tokens))
+
+            # Lemmatization
+            lemmatized_tokens = [token.lemma_ for token in doc]
+            normalized_text = ' '.join(lemmatized_tokens)
+
+            return normalized_text
+        else:
+            logging.error("Expected a string while normalizing text.")
+            return ""
+
+    # Load spaCy model based on language
+    def load_spacy_model(self, lang):
+        if lang == 'es':
+            return spacy.load('es_core_news_sm')  # Spanish model
+        elif lang == 'ja':
+            return spacy.load('ja_core_news_sm')  # Japanese model
+        else:
+            return spacy.load('en_core_web_sm')  # Default to English
+
+    def normalize_text_batch(self, batch_series):
+        logging.info("Normalizing text")
+        normalized_texts = []
+        for text in batch_series:
+            try:
+                normalized_texts.append(self.normalize_text(text))
+            except Exception as e:
+                logging.error(f"Exception occurred during normalization of text '{text}': {e}")
+                normalized_texts.append("")
+        return pd.Series(normalized_texts)

@@ -14,7 +14,18 @@ from langchain.chains.combine_documents import create_stuff_documents_chain
 class RAGApplication:
     def __init__(self, vector_index_instance=None):
         self.vector_index = vector_index_instance
-        self.llm_connection = ChatOpenAI(api_key=chatOpenAiKey)
+        self.llm_connection = ChatOpenAI(
+            model_name="gpt-3.5-turbo",
+            temperature=0,
+            api_key=chatOpenAiKey,
+            streaming=True,
+            openai_organization=None,
+            tiktoken_model_name=None,
+            default_headers=None,
+            default_query=None,
+            http_client=None,
+            http_async_client=None
+        )
         self.current_query = None
 
     def get_vector_index(self):

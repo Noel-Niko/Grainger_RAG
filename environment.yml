@@ -2,6 +2,7 @@ name: simple_retrieval_augmented_generation_env
 channels:
   - conda-forge
   - pytorch
+  - moustik
 dependencies:
   - python=3.8
   - mkl
@@ -20,3 +21,10 @@ dependencies:
   - pyyaml
   - packaging
   - faker
+  - spacy
+  - langdetect
+  - fasttext
+  - httpx=0.27.0
+  - contractions
+  - requests
+

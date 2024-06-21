@@ -21,7 +21,7 @@ ENV PYTHONPATH="/app:${PYTHONPATH}"
 # Install system level dependencies not available via conda or pip
 RUN apt-get update && apt-get install -y swig
 
-RUN conda config --add channels conda-forge
+RUN conda config --add channels conda-forge moustik
 
 # Create the conda environment
 COPY environment.yml /tmp/environment.yml
@@ -30,6 +30,9 @@ RUN conda env create -f /tmp/environment.yml && \
 
 # Activate the Conda environment and install pip required install(s)
 RUN /bin/bash -c "source /opt/conda/etc/profile.d/conda.sh && conda activate simple_retrieval_augmented_generation_env && pip install -r requirements.txt"
+
+# Download Spacy models
+RUN /bin/bash -c "source /opt/conda/etc/profile.d/conda.sh && conda activate simple_retrieval_augmented_generation_env && python -m spacy download ja_core_news_sm && python -m spacy download es_core_news_sm && python -m spacy download en_core_web_sm"
 
 # Clean up to reduce image size
 RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*

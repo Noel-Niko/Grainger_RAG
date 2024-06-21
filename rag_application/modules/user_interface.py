@@ -9,7 +9,7 @@ from rag_application.constants import chatOpenAiKey, initial_question_wrapper, p
 from langchain_openai import ChatOpenAI
 from langchain_core.documents import Document
 from langchain.chains.combine_documents import create_stuff_documents_chain
-
+from rag_application.modules.prompt_refiner import refine_question
 
 class RAGApplication:
     def __init__(self, vector_index_instance=None):
@@ -94,7 +94,10 @@ class RAGApplication:
             [f"Question: {q}, Answer: {a}" for q, a in st.session_state.conversation_history] + [f"Question: {query}"])
 
         # Parse the query using the LLM
-        refined_query = self.llm_connection.invoke(f"{initial_question_wrapper} {conversation_context}").content
+        # refined_query = self.llm_connection.invoke(f"{initial_question_wrapper} {conversation_context}").content
+
+        # Parse using customer function
+        refined_query = refine_question(query)
 
         logging.info(
             f"**************************    Searching in FAISS for {refined_query}    *******************************")
@@ -114,8 +117,10 @@ class RAGApplication:
         document_chain = create_stuff_documents_chain(self.llm_connection, prompt)
         context_document = Document(page_content=context_faiss_response)
         self.current_query = ""
+        logging.info(f"*****************************************    Asking LLM: {initial_question_wrapper} {query}. "
+                     f"Here is the conversation history:  {conversation_context}")
         return document_chain.invoke({
-            "input": f"{query}",
+            "input": f"{initial_question_wrapper} {query}. Here is the conversation history:  {conversation_context}",
             "context": [context_document]
         })
 

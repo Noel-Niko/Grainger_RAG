@@ -290,6 +290,8 @@ class VectorIndex:
             tuple: A tuple containing the embedding (numpy array) and the index of the nearest neighbor.
                    If the embedding is not found or no valid neighbor is found, returns (None, None).
         """
+        if isinstance(product_id, str):
+            product_id = product_id.upper()
         logging.info(f"Searching for embedding by product ID: {product_id}")
 
         if not self._index.is_trained:

@@ -209,6 +209,26 @@ class TestVectorIndex(unittest.TestCase):
         # Print the response
         print("Response:", response)
 
+    def test_search_via_string_and_generate_response(self):
+        """Test search_and_generate_response method."""
+        # Set up data
+        self.set_up_data()
+
+        # Define a refined query
+        refined_query = "9B"
+
+        # Call the method
+        response = self.vector_index.search_and_generate_response(refined_query, llm=None, k=5)
+
+        # Check the response
+        self.assertIsInstance(response, str, "Response is not a string.")
+        self.assertGreater(len(response), 0, "Response is empty.")
+        # self.assertIn("9B", response.lower(),
+        #               "Query term not found in the response.")
+
+        # Print the response
+        print("Response for test_search_and_generate_response:", response)
+
     def test_empty_query_vector(self):
         """Test searching with an empty query vector."""
         self.set_up_data()
@@ -245,24 +265,7 @@ class TestVectorIndex(unittest.TestCase):
         self.assertEqual(set(changed_product_ids), expected_changed_product_ids,
                          "Incorrect product IDs identified as changed")
 
-    # def test_update_product_descriptions(self):
-    #     """Test updating product descriptions and regenerating embeddings using batch updates."""
-    #     self.set_up_data()
-    #
-    #     # Access product IDs directly from the index
-    #     all_product_ids = self.vector_index.products_df.index.unique().tolist()
-    #     selected_product_ids = random.sample(all_product_ids, k=3)
-    #
-    #     # Create new descriptions for these products.
-    #     new_descriptions_map = {product_id: f"Updated description for product {product_id}" for product_id in selected_product_ids}
-    #
-    #     self.vector_index.update_product_descriptions(new_descriptions_map)
-    #
-    #     # Verify descriptions have been updated correctly.
-    #     for product_id, new_description in new_descriptions_map.items():
-    #         updated_row = self.vector_index.products_df.loc[product_id]
-    #         self.assertEqual(updated_row['product_description'], new_description)
-    #         self.assertEqual(updated_row['product_title'], f"{updated_row['product_title']}")
+
     def test_update_product_descriptions(self):
         """Test updating product descriptions and regenerating embeddings using batch updates."""
         self.set_up_data()

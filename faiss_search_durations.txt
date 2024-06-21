@@ -98,3 +98,6 @@ FAISS search duration: 1.88 seconds, Timestamp: 2024-06-20 18:00:34.751146
 FAISS search duration: 0.50 seconds, Timestamp: 2024-06-20 18:01:21.531781
 FAISS search duration: 0.49 seconds, Timestamp: 2024-06-20 18:02:27.813029
 FAISS search duration: 0.61 seconds, Timestamp: 2024-06-20 18:03:00.901408
+FAISS search duration: 4.62 seconds, Timestamp: 2024-06-21 08:29:13.660726
+FAISS search duration: 0.84 seconds, Timestamp: 2024-06-21 08:29:44.841761
+FAISS search duration: 1.13 seconds, Timestamp: 2024-06-21 08:31:01.641462

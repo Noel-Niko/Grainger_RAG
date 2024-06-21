@@ -1,12 +1,8 @@
 # A Simple Retrieval-Augmented Generation (RAG) Application
 ![image](https://github.com/Noel-Niko/grainger_rag/assets/83922762/5ceebba5-8680-4237-96e4-3ad7e8022faa)
 
-![Womens clothing](https://github.com/Noel-Niko/simple_retrieval_augmented_generation/assets/83922762/0b51fc63-d731-4150-89a5-ace25dc66246)
-
-
-
-
-
+![Final Smaller File](https://github.com/Noel-Niko/simple_retrieval_augmented_generation/assets/83922762/9b6b1d30-c6e7-4128-8921-dbf87e0fb2d6)
+![image](https://github.com/Noel-Niko/simple_retrieval_augmented_generation/assets/83922762/4ed89e8c-388d-4daa-bf1d-310fd6e769e3)
 ![image](https://github.com/Noel-Niko/simple_retrieval_augmented_generation/assets/83922762/c78dde55-8b86-45e7-8f73-e393ebdb816a)
 
 ### Architecture Overview Utilizing AWS Infrastructure and Services:

@@ -114,6 +114,8 @@ class VectorIndex:
             try:
                 inputs = tokenizer(batch_texts, return_tensors="pt", padding=True, truncation=True, max_length=512)
                 outputs = model(**inputs)
+                # Regarding 0, in  batch_embeddings = outputs.last_hidden_state[:, 0, :].detach().numpy()
+                # See notes at end of file.
                 batch_embeddings = outputs.last_hidden_state[:, 0, :].detach().numpy()
 
                 # Dimensionality check
@@ -476,3 +478,52 @@ if __name__ == "__main__":
     except Exception as e:
         logging.error(f"Error creating the FAISS index: {e}")
         raise RuntimeError(f"Error creating the FAISS index: {e}")
+
+
+"""
+The most common approach when working with BERT embeddings for sentence-level tasks is to use the embedding of the `[CLS]` token. 
+This token is specifically designed to aggregate information from the entire input sequence, making it a natural choice for 
+sentence-level representations. However, other approaches can also be effective depending on the specific task and requirements. 
+Here are some commonly used methods:
+
+1. **[CLS] Token Embedding**:
+   - The embedding of the `[CLS]` token (first token in the sequence) is often used as a summary of the whole sequence.
+   ```python
+   batch_embeddings = outputs.last_hidden_state[:, 0, :].detach().numpy()
+   ```
+
+2. **Mean Pooling**:
+   - Average the embeddings of all tokens to get a single vector representation of the sequence.
+   ```python
+   batch_embeddings = outputs.last_hidden_state.mean(dim=1).detach().numpy()
+   ```
+
+3. **Max Pooling**:
+   - Take the maximum value for each dimension across all token embeddings in the sequence.
+   ```python
+   batch_embeddings, _ = outputs.last_hidden_state.max(dim=1)
+   batch_embeddings = batch_embeddings.detach().numpy()
+   ```
+
+4. **Concatenation of Multiple Layers**:
+   - Concatenate the embeddings from multiple layers of BERT to capture richer information.
+   ```python
+   # Example of concatenating last four layers
+   hidden_states = outputs.hidden_states  # Ensure output_hidden_states=True when calling the model
+   concatenated_layers = torch.cat((hidden_states[-1], hidden_states[-2], hidden_states[-3], hidden_states[-4]), dim=-1)
+   batch_embeddings = concatenated_layers[:, 0, :].detach().numpy()
+   ```
+
+5. **Weighted Sum of Multiple Layers**:
+   - Use a weighted sum of the embeddings from multiple layers.
+   ```python
+   weights = [0.1, 0.2, 0.3, 0.4]  # Example weights for the last four layers
+   hidden_states = outputs.hidden_states  # Ensure output_hidden_states=True when calling the model
+   weighted_sum = sum(w * h for w, h in zip(weights, hidden_states[-4:]))
+   batch_embeddings = weighted_sum[:, 0, :].detach().numpy()
+   ```
+
+The choice of method depends on the specific application and empirical performance. 
+The `[CLS]` token approach is widely used for its simplicity and effectiveness in many tasks, 
+but experimenting with other pooling strategies can sometimes yield better results for specific use cases.
+"""

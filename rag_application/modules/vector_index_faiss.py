@@ -481,7 +481,7 @@ if __name__ == "__main__":
 
 
 """
-The most common approach when working with BERT embeddings for sentence-level tasks is to use the embedding of the `[CLS]` token. 
+The most common approach when working with BERT embeddings for sentence-level tasks is to use the embedding of the `[CLS]` token (https://discuss.huggingface.co/t/significance-of-the-cls-token/3180/9). 
 This token is specifically designed to aggregate information from the entire input sequence, making it a natural choice for 
 sentence-level representations. However, other approaches can also be effective depending on the specific task and requirements. 
 Here are some commonly used methods:
